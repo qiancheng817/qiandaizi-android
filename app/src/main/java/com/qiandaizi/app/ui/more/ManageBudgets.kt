@@ -320,13 +320,13 @@ private fun ProgressTrack(fraction: Float, over: Boolean) {
 @Composable
 private fun BudgetEditDialog(
     title: String,
-    initialAmount: String,
+    initialAmount: String? = null,
     initialCategory: String,
     initialExpression: String,
     onDismiss: () -> Unit,
     onConfirm: (amount: Double, category: String, expression: String) -> Unit
 ) {
-    var amountText by remember { mutableStateOf(initialAmount) }
+    var amountText by remember { mutableStateOf(initialAmount ?: "") }
     var category by remember { mutableStateOf(initialCategory) }
     var expression by remember { mutableStateOf(initialExpression) }
 

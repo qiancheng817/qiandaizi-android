@@ -266,7 +266,7 @@ fun AiScreen() {
                         )
                         Spacer(Modifier.height(10.dp))
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                            GhostButton("取消") { result = null }
+                            GhostButton("取消", onClick = { result = null })
                             Spacer(Modifier.size(10.dp))
                             Button(
                                 onClick = {
@@ -347,7 +347,7 @@ fun AiScreen() {
                         }
                         Spacer(Modifier.height(10.dp))
                         Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
-                            GhostButton("删除记账") {
+                            GhostButton("删除记账", onClick = {
                                 scope.launch {
                                     runCatching { appState.api().deleteFlow(c.id) }
                                         .onSuccess {
@@ -357,7 +357,7 @@ fun AiScreen() {
                                         }
                                         .onFailure { appState.notify(explainError(it)) }
                                 }
-                            }
+                            })
                             Spacer(Modifier.size(10.dp))
                             Button(
                                 onClick = { editing = true },
