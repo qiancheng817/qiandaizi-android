@@ -56,8 +56,9 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.core.content.ContextCompat
-import coil.compose.rememberDrawablePainter
+import androidx.compose.ui.viewinterop.AndroidView
 import com.qiandaizi.app.R
+import android.widget.ImageView
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.qiandaizi.app.core.AppBg
@@ -486,19 +487,17 @@ fun ScrollColumn(
 /**
  * 应用图标（安全加载）：
  * painterResource 不支持 adaptive-icon（mipmap-anydpi），会按矢量解析直接崩溃，
- * 这里走系统 Drawable 加载 + DrawablePainter，支持自适应图标。
+ * 这里用原生 ImageView 加载系统 Drawable，支持自适应图标。
  */
 @Composable
 fun AppIcon(modifier: Modifier = Modifier) {
-    val context = LocalContext.current
-    val drawable = remember {
-        runCatching { ContextCompat.getDrawable(context, R.mipmap.ic_launcher) }.getOrNull()
-    }
-    if (drawable != null) {
-        Image(
-            painter = rememberDrawablePainter(drawable = drawable),
-            contentDescription = null,
-            modifier = modifier
-        )
-    }
+    AndroidView(
+        modifier = modifier,
+        factory = { context ->
+            ImageView(context).apply {
+                scaleType = ImageView.ScaleType.CENTER_CROP
+                setImageResource(R.mipmap.ic_launcher)
+            }
+        }
+    )
 }
