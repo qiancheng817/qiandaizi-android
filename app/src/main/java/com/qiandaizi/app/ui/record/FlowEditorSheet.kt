@@ -30,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.qiandaizi.app.core.AppGraph
+import com.qiandaizi.app.core.AttrMember
 import com.qiandaizi.app.core.CategoryDto
 import com.qiandaizi.app.core.FlowDto
 import com.qiandaizi.app.core.FlowReq
@@ -51,9 +52,15 @@ fun FlowEditorSheet(
     val scope = rememberCoroutineScope()
     val form = remember(flow.id) { FlowFormState(initial = flow) }
 
+    var members by remember { mutableStateOf<List<AttrMember>>(emptyList()) }
     var saving by remember { mutableStateOf(false) }
     var errorMsg by remember { mutableStateOf<String?>(null) }
     var confirmDelete by remember { mutableStateOf(false) }
+
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        runCatching { appState.api().attributions() }
+            .onSuccess { members = it.members }
+    }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -73,7 +80,7 @@ fun FlowEditorSheet(
                 modifier = Modifier.padding(bottom = 12.dp)
             )
 
-            FlowFormFields(state = form, categories = categories)
+            FlowFormFields(state = form, categories = categories, members = members)
 
             errorMsg?.let { msg ->
                 Spacer(Modifier.height(10.dp))

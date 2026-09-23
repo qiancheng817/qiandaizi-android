@@ -1,5 +1,6 @@
 package com.qiandaizi.app.ui.auth
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -31,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -65,33 +68,51 @@ fun LoginScreen() {
         return
     }
 
+    Box(Modifier.fillMaxSize().background(Yellow)) {
     Column(
         Modifier
             .fillMaxSize()
-            .background(AppBg)
-            .verticalScroll(rememberScrollState())
+            .statusBarsPadding()
     ) {
-        // 黄色头部
+        // 黄色头部（固定）
         Column(
             Modifier
                 .fillMaxWidth()
-                .background(Yellow)
-                .padding(start = 20.dp, end = 20.dp, top = 48.dp, bottom = 34.dp)
+                .padding(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 28.dp)
         ) {
             Box(
                 Modifier
-                    .size(70.dp)
+                    .size(66.dp)
                     .clip(RoundedCornerShape(18.dp))
                     .background(Color(0xFFFFF3C4)),
                 contentAlignment = Alignment.Center
-            ) { Text("💰", fontSize = 38.sp) }
+            ) {
+                Image(
+                    painterResource(com.qiandaizi.app.R.mipmap.ic_launcher),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(52.dp)
+                        .clip(RoundedCornerShape(13.dp))
+                )
+            }
             Spacer(Modifier.height(14.dp))
             Text("欢迎使用钱袋子", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = TextMain)
             Spacer(Modifier.height(6.dp))
             Text("登录后数据将与服务器实时同步", fontSize = 13.sp, color = Color(0xFF7A6520))
         }
 
-        Column(Modifier.padding(16.dp)) {
+        // 主体（独立滚动，灰底）
+        Box(
+            Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .background(AppBg)
+        ) {
+        Column(
+            Modifier
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp)
+        ) {
             // 当前服务器卡片
             Surface(
                 shape = RoundedCornerShape(16.dp),
@@ -249,5 +270,7 @@ fun LoginScreen() {
             }
             Spacer(Modifier.height(28.dp))
         }
+        }
+    }
     }
 }

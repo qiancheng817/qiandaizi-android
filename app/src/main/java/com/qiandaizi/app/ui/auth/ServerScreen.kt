@@ -1,5 +1,6 @@
 package com.qiandaizi.app.ui.auth
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -33,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -66,17 +69,22 @@ fun ServerScreen(onBack: (() -> Unit)? = null) {
         return url
     }
 
-    Column(
+    Box(
         Modifier
             .fillMaxSize()
             .background(Yellow)
+    ) {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
             .verticalScroll(rememberScrollState())
     ) {
         if (onBack != null) {
             Row(
                 Modifier
                     .fillMaxWidth()
-                    .padding(start = 8.dp, top = 10.dp)
+                    .padding(start = 8.dp, top = 6.dp)
             ) {
                 Icon(
                     Icons.AutoMirrored.Filled.ArrowBack,
@@ -90,7 +98,7 @@ fun ServerScreen(onBack: (() -> Unit)? = null) {
                 )
             }
         }
-        Spacer(Modifier.height(if (onBack != null) 20.dp else 60.dp))
+        Spacer(Modifier.height(if (onBack != null) 16.dp else 24.dp))
         Box(
             Modifier
                 .padding(bottom = 10.dp)
@@ -99,11 +107,19 @@ fun ServerScreen(onBack: (() -> Unit)? = null) {
         ) {
             Box(
                 Modifier
-                    .size(86.dp)
-                    .clip(RoundedCornerShape(22.dp))
+                    .size(96.dp)
+                    .clip(RoundedCornerShape(26.dp))
                     .background(Color(0xFFFFF3C4)),
                 contentAlignment = Alignment.Center
-            ) { Text("💰", fontSize = 48.sp) }
+            ) {
+                Image(
+                    painterResource(com.qiandaizi.app.R.mipmap.ic_launcher),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(74.dp)
+                        .clip(RoundedCornerShape(18.dp))
+                )
+            }
         }
         Text(
             "钱袋子",
@@ -228,6 +244,7 @@ fun ServerScreen(onBack: (() -> Unit)? = null) {
             }
             Spacer(Modifier.height(24.dp))
         }
+    }
     }
 
     if (addDialog) {

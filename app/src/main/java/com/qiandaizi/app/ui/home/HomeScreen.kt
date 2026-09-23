@@ -1,6 +1,7 @@
 package com.qiandaizi.app.ui.home
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -42,6 +44,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -102,30 +105,33 @@ fun HomeScreen() {
 
     val me = appState.user()
     val other = members.firstOrNull { it.id != me?.id }
-    val bagTitles = buildList {
-        add("总钱袋")
-        add("我的钱袋")
-        if (other != null) add("对方的钱袋")
+    // 三个钱袋固定存在（默认总钱袋）；对方暂无成员时数据按 0 展示
+    val bagTitles = listOf("总钱袋", "我的钱袋", "对方的钱袋")
+
+    // 账本成员（独立加载，不被其他接口失败拖累）
+    LaunchedEffect(appState.epoch) {
+        runCatching { appState.api().attributions() }
+            .onSuccess { members = it.members }
     }
 
-    // 主数据：钱袋 + 日历热力 + 成员
+    // 钱袋数据
     LaunchedEffect(month, appState.epoch) {
         loadError = null
-        runCatching {
-            val api = appState.api()
-            val mb = api.moneybags(month)
-            val cal = api.statCalendar(month)
-            val attr = if (members.isEmpty()) api.attributions() else null
-            val cats = api.categories()
-            FourData(mb, cal, attr, cats)
-        }.onSuccess { d ->
-            bags = d.mb
-            calendar = d.cal
-            d.attr?.let {
-                members = it.members
-            }
-            categories = d.cats
-        }.onFailure { loadError = explainError(it) }
+        runCatching { appState.api().moneybags(month) }
+            .onSuccess { bags = it }
+            .onFailure { loadError = explainError(it) }
+    }
+
+    // 日历热力
+    LaunchedEffect(month, appState.epoch) {
+        runCatching { appState.api().statCalendar(month) }
+            .onSuccess { calendar = it }
+    }
+
+    // 分类
+    LaunchedEffect(appState.epoch) {
+        runCatching { appState.api().categories() }
+            .onSuccess { categories = it }
     }
 
     // 最近记录
@@ -180,6 +186,7 @@ fun HomeScreen() {
             Modifier
                 .fillMaxWidth()
                 .background(com.qiandaizi.app.core.Yellow)
+                .statusBarsPadding()
                 .padding(start = 14.dp, end = 14.dp, top = 14.dp, bottom = 26.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -500,7 +507,13 @@ private fun BubbleSwitcher(
                 textAlign = TextAlign.Center
             )
             Spacer(Modifier.size(4.dp))
-            Text("👛", fontSize = 18.sp)
+            Image(
+                painterResource(com.qiandaizi.app.R.mipmap.ic_launcher),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(22.dp)
+                    .clip(RoundedCornerShape(6.dp))
+            )
             Spacer(Modifier.size(8.dp))
             Text(
                 titles[index],
@@ -886,11 +899,3 @@ private fun MonthPickerDialog(
     )
 }
 
-/* ==================== 数据载体 ==================== */
-
-private data class FourData(
-    val mb: MoneyBagsDto,
-    val cal: List<DailyDto>,
-    val attr: com.qiandaizi.app.core.AttrListDto?,
-    val cats: List<CategoryDto>
-)

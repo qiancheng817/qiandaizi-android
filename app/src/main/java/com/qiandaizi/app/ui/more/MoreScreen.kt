@@ -1,5 +1,6 @@
 package com.qiandaizi.app.ui.more
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -29,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -51,38 +54,26 @@ fun MoreScreen(onOpen: (Route) -> Unit) {
             .verticalScroll(rememberScrollState())
             .background(Color(0xFFF6F7F9))
     ) {
-        // ===== 顶部双头像 =====
+        // ===== 顶部单个图标 =====
         Column(
             Modifier
                 .fillMaxWidth()
-                .padding(top = 34.dp, bottom = 24.dp),
+                .statusBarsPadding()
+                .padding(top = 22.dp, bottom = 22.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Box {
-                Box(
-                    Modifier
-                        .size(78.dp)
-                        .clip(CircleShape)
-                        .background(Yellow)
-                        .align(Alignment.CenterStart),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        me?.nickname?.take(1) ?: "我",
-                        fontSize = 30.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextMain
-                    )
-                }
-                Box(
-                    Modifier
-                        .align(Alignment.CenterEnd)
-                        .offset(x = (-26).dp)
-                        .size(64.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFFE9EBF0)),
-                    contentAlignment = Alignment.Center
-                ) { Text("☁️", fontSize = 28.sp) }
+            Box(
+                Modifier
+                    .size(86.dp)
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(Yellow),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painterResource(com.qiandaizi.app.R.mipmap.ic_launcher),
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize()
+                )
             }
             Spacer(Modifier.height(10.dp))
             Text(

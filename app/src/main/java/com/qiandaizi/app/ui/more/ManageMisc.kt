@@ -269,12 +269,48 @@ fun ServerSwitchScreen(onBack: () -> Unit) {
                     }
                 }
             }
+
+            Spacer(Modifier.height(14.dp))
+
+            // 新增服务器
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(Color(0xFFFFF3C4))
+                    .clickable { managing = true }
+                    .padding(vertical = 13.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("＋ 新增服务器", color = Color(0xFF8A6D1B), fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold)
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            // 退出当前服务器：回到服务器选择界面
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(Color(0xFFFDF2F2))
+                    .clickable {
+                        scope.launch {
+                            appState.exitCurrentServer()
+                            appState.notify("已退出当前服务器")
+                        }
+                    }
+                    .padding(vertical = 13.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("退出当前服务器", color = Color(0xFFE5484D), fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium)
+            }
+
             Spacer(Modifier.height(20.dp))
         }
     }
 }
-
-/* ================= 月度账单 ================= */
 
 @Composable
 fun BillsScreen(onBack: () -> Unit) {

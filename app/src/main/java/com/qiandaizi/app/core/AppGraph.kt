@@ -129,6 +129,12 @@ class AppState(private val store: SessionStore) {
         commit { it.copy(activeServer = url) }
     }
 
+    /** 退出当前服务器（保留服务器记录，回到服务器选择界面） */
+    suspend fun exitCurrentServer() {
+        commit { it.copy(activeServer = null) }
+        bump()
+    }
+
     suspend fun deleteServer(url: String) {
         commit { s ->
             val remainingServers = s.servers.filterNot { it == url }
@@ -169,14 +175,24 @@ class AppState(private val store: SessionStore) {
             )
         }
 
-        val books = api.books()
+        ensureBook()
+    }
+
+    /**
+     * 确保当前服务器上有可用账本：
+     * 优先用上次记住的，否则用第一个，都没有则自动创建。
+     * 防止登录中途失败导致「缺少账本ID」。
+     */
+    suspend fun ensureBook(): Int {
+        val srv = server ?: throw IllegalStateException("未选择服务器")
+        val books = api().books()
         val remembered = session.books[srv]
         val picked = remembered?.takeIf { id -> books.any { it.id == id } }
             ?: books.firstOrNull()?.id
-            ?: api.createBook(BookReq("我的账本")).id
-
+            ?: api().createBook(BookReq("我的账本")).id
         commit { s -> s.copy(books = s.books + (srv to picked)) }
         bump()
+        return picked
     }
 
     /** 切换到本服务器上已记住的账号（无需重新登录） */
@@ -186,12 +202,7 @@ class AppState(private val store: SessionStore) {
             throw IllegalArgumentException("未找到该账号")
         commit { s -> s.copy(activeUser = s.activeUser + (srv to username)) }
         // 切换账号后重新确定账本
-        val books = api().books()
-        val remembered = session.books[srv]
-        val picked = remembered?.takeIf { id -> books.any { it.id == id } }
-            ?: books.firstOrNull()?.id
-        commit { s -> s.copy(books = s.books + (srv to (picked ?: 0))) }
-        bump()
+        ensureBook()
     }
 
     /** 用后端返回的最新资料刷新当前账号缓存（昵称/颜色变化时同步） */

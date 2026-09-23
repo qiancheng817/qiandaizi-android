@@ -1,6 +1,7 @@
 package com.qiandaizi.app.ui
 
 import androidx.compose.animation.AnimatedContent
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -105,6 +107,7 @@ fun RootGate() {
             !state.loaded -> Box(Modifier.fillMaxSize().background(Yellow))
             state.server == null -> ServerScreen()
             state.account() == null -> LoginScreen()
+            state.bookId() == null -> EnsureBookGate()
             else -> MainShell()
         }
 
@@ -154,6 +157,10 @@ fun MainShell() {
     val push: (Route) -> Unit = { subStack = subStack + it }
     val pop: () -> Unit = { if (subStack.isNotEmpty()) subStack = subStack.dropLast(1) }
 
+    // 系统返回（含屏幕左边缘右滑手势）：先退子页面，再回首页
+    BackHandler(enabled = subStack.isNotEmpty()) { pop() }
+    BackHandler(enabled = subStack.isEmpty() && tab != 0) { tab = 0 }
+
     Column(Modifier.fillMaxSize()) {
         Box(Modifier.weight(1f).fillMaxWidth()) {
             when (tab) {
@@ -168,6 +175,38 @@ fun MainShell() {
             }
         }
         BottomBar(tab = tab, onSelect = { tab = it })
+    }
+}
+
+/** 账本初始化闸门：自动补建账本，失败可重试 */
+@Composable
+private fun EnsureBookGate() {
+    val state = AppGraph.state
+    var error by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(state.epoch) {
+        error = null
+        runCatching { state.ensureBook() }
+            .onFailure { error = explainError(it) }
+    }
+
+    Box(Modifier.fillMaxSize().background(Yellow), contentAlignment = Alignment.Center) {
+        if (error == null) {
+            androidx.compose.material3.CircularProgressIndicator(color = YellowDark)
+        } else {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.padding(horizontal = 40.dp)
+            ) {
+                Text("账本初始化失败", fontSize = 16.sp, fontWeight = FontWeight.Bold,
+                    color = TextMain)
+                Spacer(Modifier.height(8.dp))
+                Text(error!!, fontSize = 13.sp, color = TextSub,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                Spacer(Modifier.height(14.dp))
+                com.qiandaizi.app.ui.common.GhostButton("重试", onClick = { state.bump() })
+            }
+        }
     }
 }
 
@@ -197,10 +236,15 @@ private fun SubRoute(route: Route, onBack: () -> Unit, push: (Route) -> Unit) {
 @Composable
 private fun BottomBar(tab: Int, onSelect: (Int) -> Unit) {
     Surface(color = CardWhite, shadowElevation = 12.dp) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+        ) {
         Row(
             Modifier
                 .fillMaxWidth()
-                .height(62.dp)
+                .height(64.dp)
                 .padding(top = 6.dp),
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.Top
@@ -254,6 +298,7 @@ private fun BottomBar(tab: Int, onSelect: (Int) -> Unit) {
                     }
                 }
             }
+        }
         }
     }
 }

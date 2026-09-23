@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -99,13 +100,15 @@ fun StatsScreen() {
     Column(
         Modifier
             .fillMaxSize()
+            .background(Color(0xFFF6F7F9))
             .verticalScroll(rememberScrollState())
     ) {
         Column(
             Modifier
                 .fillMaxWidth()
                 .background(com.qiandaizi.app.core.Yellow)
-                .padding(start = 20.dp, top = 24.dp, bottom = 20.dp)
+                .statusBarsPadding()
+                .padding(start = 20.dp, top = 8.dp, bottom = 20.dp)
         ) {
             Text("统计", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = TextMain)
             Spacer(Modifier.height(14.dp))
