@@ -372,6 +372,7 @@ fun HomeScreen() {
                             value = "¥${amount(income)}",
                             valueColor = com.qiandaizi.app.core.ExpenseRed,
                             big = true,
+                            baseFontSize = 18f,
                             modifier = Modifier.weight(1f)
                         )
                         Spacer(Modifier.size(12.dp))
@@ -607,8 +608,11 @@ private fun AmountRow(
     value: String,
     valueColor: Color,
     big: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    baseFontSize: Float = if (big) 24f else 18f
 ) {
+    // 字号自适应：金额过长时自动缩小，避免显示不全
+    var fontSize by remember(value) { mutableStateOf(baseFontSize) }
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
         Box(
             Modifier
@@ -627,10 +631,14 @@ private fun AmountRow(
         Spacer(Modifier.size(12.dp))
         Text(
             value,
-            fontSize = if (big) 27.sp else 22.sp,
+            fontSize = fontSize.sp,
             fontWeight = FontWeight.Bold,
             color = valueColor,
-            maxLines = 1
+            maxLines = 1,
+            softWrap = false,
+            onTextLayout = {
+                if (it.hasVisualOverflow && fontSize > 10f) fontSize -= 2f
+            }
         )
     }
 }
