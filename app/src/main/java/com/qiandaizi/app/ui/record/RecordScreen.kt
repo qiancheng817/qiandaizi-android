@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -162,9 +163,11 @@ fun RecordScreen(
                 )
             }
 
-            // 支出 / 收入（绝对居中，不受左右按钮数量影响）
+            // 支出 / 收入（绝对居中，宽度自适应，不向两侧扩张）
             Row(
-                Modifier.align(Alignment.Center),
+                Modifier
+                    .align(Alignment.Center)
+                    .wrapContentWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 TypeTab("支出", selected = form.type == "expense") {
@@ -173,7 +176,7 @@ fun RecordScreen(
                         form.category = categories.firstOrNull { it.type == "expense" }?.name ?: ""
                     }
                 }
-                Spacer(Modifier.size(34.dp))
+                Spacer(Modifier.size(28.dp))
                 TypeTab("收入", selected = form.type == "income") {
                     form.type = "income"
                     if (categories.none { it.name == form.category && it.type == "income" }) {
@@ -449,19 +452,23 @@ fun RecordScreen(
 private fun TypeTab(text: String, selected: Boolean, onClick: () -> Unit) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.clickable { onClick() }
+        modifier = Modifier
+            .wrapContentWidth()
+            .clickable { onClick() }
     ) {
         Text(
             text,
             fontSize = 18.sp,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-            color = if (selected) TextMain else TextSub
+            color = if (selected) TextMain else TextSub,
+            modifier = Modifier.padding(horizontal = 4.dp)
         )
         Spacer(Modifier.height(4.dp))
+        // 下划线跟随文字宽度，不再 fillMaxWidth 横向扩张
         Box(
             Modifier
                 .height(3.dp)
-                .then(if (selected) Modifier.fillMaxWidth(0.6f) else Modifier.width(0.dp))
+                .then(if (selected) Modifier.width(26.dp) else Modifier.width(0.dp))
                 .clip(RoundedCornerShape(2.dp))
                 .background(com.qiandaizi.app.core.YellowDark)
         )
