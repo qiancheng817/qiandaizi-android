@@ -175,7 +175,11 @@ fun MainShell() {
                 SubRoute(route = route, onBack = pop, push = push)
             }
         }
-        BottomBar(tab = tab, onSelect = { tab = it })
+        // 底栏随时可点：切换 Tab 时同时退出所有子页面
+        BottomBar(tab = tab, onSelect = {
+            tab = it
+            subStack = emptyList()
+        })
     }
 }
 

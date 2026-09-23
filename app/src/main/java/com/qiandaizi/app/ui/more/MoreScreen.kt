@@ -1,6 +1,5 @@
 package com.qiandaizi.app.ui.more
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -31,7 +30,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -40,6 +38,7 @@ import com.qiandaizi.app.core.TextMain
 import com.qiandaizi.app.core.TextSub
 import com.qiandaizi.app.core.Yellow
 import com.qiandaizi.app.ui.Route
+import com.qiandaizi.app.ui.common.AppIcon
 import kotlinx.coroutines.launch
 
 @Composable
@@ -69,11 +68,7 @@ fun MoreScreen(onOpen: (Route) -> Unit) {
                     .background(Yellow),
                 contentAlignment = Alignment.Center
             ) {
-                Image(
-                    painterResource(com.qiandaizi.app.R.mipmap.ic_launcher),
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize()
-                )
+                AppIcon(modifier = Modifier.fillMaxSize())
             }
             Spacer(Modifier.height(10.dp))
             Text(

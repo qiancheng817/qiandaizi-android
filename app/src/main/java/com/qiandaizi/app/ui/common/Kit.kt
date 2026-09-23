@@ -1,6 +1,7 @@
 package com.qiandaizi.app.ui.common
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -47,12 +48,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.core.content.ContextCompat
+import coil.compose.rememberDrawablePainter
+import com.qiandaizi.app.R
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.qiandaizi.app.core.AppBg
@@ -476,4 +481,24 @@ fun ScrollColumn(
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
     ) { content() }
+}
+
+/**
+ * 应用图标（安全加载）：
+ * painterResource 不支持 adaptive-icon（mipmap-anydpi），会按矢量解析直接崩溃，
+ * 这里走系统 Drawable 加载 + DrawablePainter，支持自适应图标。
+ */
+@Composable
+fun AppIcon(modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val drawable = remember {
+        runCatching { ContextCompat.getDrawable(context, R.mipmap.ic_launcher) }.getOrNull()
+    }
+    if (drawable != null) {
+        Image(
+            painter = rememberDrawablePainter(drawable = drawable),
+            contentDescription = null,
+            modifier = modifier
+        )
+    }
 }

@@ -1,6 +1,5 @@
 package com.qiandaizi.app.ui.auth
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -33,7 +32,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -49,6 +47,7 @@ import com.qiandaizi.app.core.explainError
 import com.qiandaizi.app.ui.common.PrimaryButton
 import com.qiandaizi.app.ui.common.QianField
 import com.qiandaizi.app.ui.common.WhiteCard
+import com.qiandaizi.app.ui.common.AppIcon
 import kotlinx.coroutines.launch
 
 @Composable
@@ -87,9 +86,7 @@ fun LoginScreen() {
                     .background(Color(0xFFFFF3C4)),
                 contentAlignment = Alignment.Center
             ) {
-                Image(
-                    painterResource(com.qiandaizi.app.R.mipmap.ic_launcher),
-                    contentDescription = null,
+                AppIcon(
                     modifier = Modifier
                         .size(52.dp)
                         .clip(RoundedCornerShape(13.dp))

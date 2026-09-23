@@ -1,6 +1,5 @@
 package com.qiandaizi.app.ui.more
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,7 +18,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -33,6 +31,7 @@ import com.qiandaizi.app.ui.common.PrimaryButton
 import com.qiandaizi.app.ui.common.QianField
 import com.qiandaizi.app.ui.common.SubPageScaffold
 import com.qiandaizi.app.ui.common.WhiteCard
+import com.qiandaizi.app.ui.common.AppIcon
 import kotlinx.coroutines.launch
 
 @Composable
@@ -194,9 +193,7 @@ fun AboutScreen(onBack: () -> Unit) {
             WhiteCard {
                 Column(Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally) {
-                    Image(
-                        painterResource(com.qiandaizi.app.R.mipmap.ic_launcher),
-                        contentDescription = null,
+                    AppIcon(
                         modifier = Modifier
                             .size(64.dp)
                             .clip(androidx.compose.foundation.shape.RoundedCornerShape(16.dp))
@@ -205,7 +202,7 @@ fun AboutScreen(onBack: () -> Unit) {
                     Text("钱袋子", fontSize = 20.sp, fontWeight = FontWeight.Bold,
                         color = TextMain)
                     Spacer(Modifier.height(4.dp))
-                    Text("版本 ${meta?.version ?: "1.0.0"}", fontSize = 12.sp,
+                    Text("版本 ${meta?.version ?: "1.1.0"}", fontSize = 12.sp,
                         color = TextSub)
                 }
             }

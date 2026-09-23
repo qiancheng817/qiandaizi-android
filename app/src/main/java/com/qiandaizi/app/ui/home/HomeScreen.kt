@@ -1,7 +1,6 @@
 package com.qiandaizi.app.ui.home
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -44,7 +43,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -69,6 +67,7 @@ import com.qiandaizi.app.core.nowMonth
 import com.qiandaizi.app.ui.common.EmptyHint
 import com.qiandaizi.app.ui.common.LoadingBox
 import com.qiandaizi.app.ui.common.WhiteCard
+import com.qiandaizi.app.ui.common.AppIcon
 import com.qiandaizi.app.ui.record.FlowEditorSheet
 import kotlinx.coroutines.launch
 import kotlin.math.min
@@ -507,9 +506,7 @@ private fun BubbleSwitcher(
                 textAlign = TextAlign.Center
             )
             Spacer(Modifier.size(4.dp))
-            Image(
-                painterResource(com.qiandaizi.app.R.mipmap.ic_launcher),
-                contentDescription = null,
+            AppIcon(
                 modifier = Modifier
                     .size(22.dp)
                     .clip(RoundedCornerShape(6.dp))
