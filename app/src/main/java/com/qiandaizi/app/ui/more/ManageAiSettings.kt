@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -161,7 +162,7 @@ fun AiSettingsScreen(onBack: () -> Unit) {
                 models.toMutableList().also { it[editIndex] = updated }
             else models + updated
             val finalList = if (updated.isDefault)
-                newList.mapIndexed { i, m -> m.copy(isDefault = i == (if (editing) editIndex else newList.size - 1) }
+                newList.mapIndexed { i, m -> m.copy(isDefault = i == (if (editing) editIndex else newList.size - 1)) }
             else newList
             editIndex = -1
             scope.launch {
@@ -228,11 +229,12 @@ private fun ModelEditDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title, fontSize = 16.sp, fontWeight = FontWeight.Bold) },
-        text = Column(
-            Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-        ) {
+        text = {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+            ) {
             DialogInput("显示名称", name) { name = it }
             DialogInput("服务商（如 openai）", provider) { provider = it }
             DialogInput("接口地址 Base URL", baseUrl) { baseUrl = it }
@@ -268,6 +270,7 @@ private fun ModelEditDialog(
                 Spacer(Modifier.size(8.dp))
                 Text("设为默认模型", fontSize = 13.sp, color = TextMain)
             }
+            }
         },
         confirmButton = {
             Text("保存", fontSize = 14.sp, color = com.qiandaizi.app.core.YellowDark,
@@ -296,7 +299,7 @@ private fun ModelEditDialog(
         dismissButton = {
             Text("取消", fontSize = 14.sp, color = TextSub,
                 modifier = Modifier
-                    .clickable(onDismiss)
+                    .clickable { onDismiss() }
                     .padding(8.dp))
         }
     )

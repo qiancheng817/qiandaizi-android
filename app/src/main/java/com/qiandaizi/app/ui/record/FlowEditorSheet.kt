@@ -75,9 +75,9 @@ fun FlowEditorSheet(
 
             FlowFormFields(state = form, categories = categories)
 
-            if (errorMsg != null) {
+            errorMsg?.let { msg ->
                 Spacer(Modifier.height(10.dp))
-                Text(errorMsg, fontSize = 13.sp, color = Color(0xFFE5484D))
+                Text(msg, fontSize = 13.sp, color = Color(0xFFE5484D))
             }
 
             Spacer(Modifier.height(20.dp))

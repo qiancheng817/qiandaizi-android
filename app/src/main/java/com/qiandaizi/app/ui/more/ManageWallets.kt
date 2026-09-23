@@ -380,7 +380,8 @@ private fun WalletEditDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("新增钱包", fontSize = 16.sp, fontWeight = FontWeight.Bold) },
-        text = Column {
+        text = {
+            Column {
             OutlinedTextField(value = name, onValueChange = { name = it },
                 singleLine = true, placeholder = { Text("钱包名称", fontSize = 13.sp) },
                 modifier = Modifier.fillMaxWidth())
@@ -410,6 +411,7 @@ private fun WalletEditDialog(
             OutlinedTextField(value = note, onValueChange = { note = it },
                 singleLine = true, placeholder = { Text("备注（可空）", fontSize = 13.sp) },
                 modifier = Modifier.fillMaxWidth())
+            }
         },
         confirmButton = {
             Text("保存", fontSize = 14.sp, color = com.qiandaizi.app.core.YellowDark,
@@ -430,7 +432,7 @@ private fun WalletEditDialog(
         dismissButton = {
             Text("取消", fontSize = 14.sp, color = TextSub,
                 modifier = Modifier
-                    .clickable(onDismiss)
+                    .clickable { onDismiss() }
                     .padding(8.dp))
         }
     )
@@ -448,7 +450,8 @@ private fun WalletTxnDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("新增存取记录", fontSize = 16.sp, fontWeight = FontWeight.Bold) },
-        text = Column {
+        text = {
+            Column {
             Row(
                 Modifier
                     .fillMaxWidth()
@@ -482,6 +485,7 @@ private fun WalletTxnDialog(
             OutlinedTextField(value = note, onValueChange = { note = it },
                 singleLine = true, placeholder = { Text("备注（可空）", fontSize = 13.sp) },
                 modifier = Modifier.fillMaxWidth())
+            }
         },
         confirmButton = {
             Text("保存", fontSize = 14.sp, color = com.qiandaizi.app.core.YellowDark,
@@ -500,7 +504,7 @@ private fun WalletTxnDialog(
         dismissButton = {
             Text("取消", fontSize = 14.sp, color = TextSub,
                 modifier = Modifier
-                    .clickable(onDismiss)
+                    .clickable { onDismiss() }
                     .padding(8.dp))
         }
     )

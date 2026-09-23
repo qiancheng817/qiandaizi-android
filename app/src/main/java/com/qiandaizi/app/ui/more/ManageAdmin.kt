@@ -241,7 +241,8 @@ private fun UserEditDialog(
                 fontSize = 16.sp, fontWeight = FontWeight.Bold
             )
         },
-        text = Column {
+        text = {
+            Column {
             if (initial == null) {
                 OutlinedTextField(value = username,
                     onValueChange = { username = it },
@@ -290,6 +291,7 @@ private fun UserEditDialog(
                     }
                 }
             }
+            }
         },
         confirmButton = {
             Text("保存", fontSize = 14.sp, color = com.qiandaizi.app.core.YellowDark,
@@ -308,7 +310,7 @@ private fun UserEditDialog(
         dismissButton = {
             Text("取消", fontSize = 14.sp, color = TextSub,
                 modifier = Modifier
-                    .clickable(onDismiss)
+                    .clickable { onDismiss() }
                     .padding(8.dp))
         }
     )

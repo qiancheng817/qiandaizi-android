@@ -374,7 +374,7 @@ private fun RecurringEditorDialog(
         dismissButton = {
             Text("取消", fontSize = 14.sp, color = TextSub,
                 modifier = Modifier
-                    .clickable(onDismiss)
+                    .clickable { onDismiss() }
                     .padding(8.dp))
         }
     )

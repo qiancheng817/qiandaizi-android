@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -23,6 +24,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -139,11 +141,11 @@ fun StatsScreen() {
 
             Spacer(Modifier.height(12.dp))
 
-            if (errorMsg != null) {
+            errorMsg?.let { msg ->
                 WhiteCard {
-                    Text(errorMsg, fontSize = 13.sp, color = TextSub)
+                    Text(msg, fontSize = 13.sp, color = TextSub)
                 }
-            } else {
+            }
                 // 概览
                 WhiteCard {
                     Text("收支概览", fontSize = 15.sp, fontWeight = FontWeight.Bold)
@@ -304,7 +306,6 @@ fun StatsScreen() {
                         else com.qiandaizi.app.core.BrandBlue
                     )
                 }
-            }
             Spacer(Modifier.height(20.dp))
         }
     }

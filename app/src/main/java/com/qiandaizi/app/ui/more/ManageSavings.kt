@@ -320,7 +320,8 @@ private fun GoalDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("攒钱目标", fontSize = 16.sp, fontWeight = FontWeight.Bold) },
-        text = Column {
+        text = {
+            Column {
             OutlinedTextField(
                 value = target,
                 onValueChange = { target = it },
@@ -334,6 +335,7 @@ private fun GoalDialog(
                 singleLine = true,
                 placeholder = { Text("备注（如：买房首付）", fontSize = 13.sp) }
             )
+            }
         },
         confirmButton = {
             Text("保存", fontSize = 14.sp, color = com.qiandaizi.app.core.YellowDark,
@@ -352,7 +354,7 @@ private fun GoalDialog(
         dismissButton = {
             Text("取消", fontSize = 14.sp, color = TextSub,
                 modifier = Modifier
-                    .clickable(onDismiss)
+                    .clickable { onDismiss() }
                     .padding(8.dp))
         }
     )
@@ -379,7 +381,8 @@ private fun ItemDialog(
                 fontSize = 16.sp, fontWeight = FontWeight.Bold
             )
         },
-        text = Column {
+        text = {
+            Column {
             Row(
                 Modifier
                     .fillMaxWidth()
@@ -428,6 +431,7 @@ private fun ItemDialog(
                 placeholder = { Text("备注（可空）", fontSize = 13.sp) },
                 modifier = Modifier.fillMaxWidth()
             )
+            }
         },
         confirmButton = {
             Text("保存", fontSize = 14.sp, color = com.qiandaizi.app.core.YellowDark,
@@ -446,7 +450,7 @@ private fun ItemDialog(
         dismissButton = {
             Text("取消", fontSize = 14.sp, color = TextSub,
                 modifier = Modifier
-                    .clickable(onDismiss)
+                    .clickable { onDismiss() }
                     .padding(8.dp))
         }
     )
@@ -491,7 +495,7 @@ private fun SetAmountDialog(
         dismissButton = {
             Text("取消", fontSize = 14.sp, color = TextSub,
                 modifier = Modifier
-                    .clickable(onDismiss)
+                    .clickable { onDismiss() }
                     .padding(8.dp))
         }
     )

@@ -240,7 +240,7 @@ fun BudgetsScreen(onBack: () -> Unit) {
     if (editTotal) {
         BudgetEditDialog(
             title = "设置总预算",
-            initialAmount = data?.total.amount?.let { if (it != 0.0) it.toString() else "" },
+            initialAmount = data?.total?.amount?.let { if (it != 0.0) it.toString() else "" },
             initialCategory = "",
             initialExpression = "",
             onDismiss = { editTotal = false }
@@ -386,7 +386,7 @@ private fun BudgetEditDialog(
         dismissButton = {
             Text("取消", fontSize = 14.sp, color = TextSub,
                 modifier = Modifier
-                    .clickable(onDismiss)
+                    .clickable { onDismiss() }
                     .padding(8.dp))
         }
     )

@@ -60,8 +60,11 @@ import com.qiandaizi.app.ui.more.CategoriesScreen
 import com.qiandaizi.app.ui.more.MoreScreen
 import com.qiandaizi.app.ui.more.OpLogsScreen
 import com.qiandaizi.app.ui.more.PresetsScreen
+import com.qiandaizi.app.ui.more.QuickAiScreen
 import com.qiandaizi.app.ui.more.RecurringScreen
 import com.qiandaizi.app.ui.more.SavingsScreen
+import com.qiandaizi.app.ui.more.ServerSwitchScreen
+import com.qiandaizi.app.ui.more.BillsScreen
 import com.qiandaizi.app.ui.more.TrashScreen
 import com.qiandaizi.app.ui.more.WalletDetailScreen
 import com.qiandaizi.app.ui.more.WalletsScreen

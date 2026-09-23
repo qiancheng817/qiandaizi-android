@@ -292,7 +292,8 @@ private fun AddPresetDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("添加常用名称", fontSize = 16.sp, fontWeight = FontWeight.Bold) },
-        text = Column {
+        text = {
+            Column {
             OutlinedTextField(value = name, onValueChange = { name = it },
                 singleLine = true, placeholder = { Text("名称，如：星巴克", fontSize = 13.sp) },
                 modifier = Modifier.fillMaxWidth())
@@ -309,6 +310,7 @@ private fun AddPresetDialog(
                 if (it.all { c -> c.isDigit() || c == '.' }) amountText = it
             }, singleLine = true, placeholder = { Text("默认金额（可空）", fontSize = 13.sp) },
                 modifier = Modifier.fillMaxWidth())
+            }
         },
         confirmButton = {
             Text("保存", fontSize = 14.sp, color = com.qiandaizi.app.core.YellowDark,
@@ -329,7 +331,7 @@ private fun AddPresetDialog(
         dismissButton = {
             Text("取消", fontSize = 14.sp, color = TextSub,
                 modifier = Modifier
-                    .clickable(onDismiss)
+                    .clickable { onDismiss() }
                     .padding(8.dp))
         }
     )

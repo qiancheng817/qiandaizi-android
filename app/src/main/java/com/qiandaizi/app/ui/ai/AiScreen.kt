@@ -9,8 +9,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -47,6 +49,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.qiandaizi.app.core.AiParseDto
+import com.qiandaizi.app.core.AiParseReq
 import com.qiandaizi.app.core.AiStatusDto
 import com.qiandaizi.app.core.AppGraph
 import com.qiandaizi.app.core.FlowDto
@@ -70,6 +73,7 @@ import kotlinx.serialization.json.jsonPrimitive
 
 private val examples = listOf("午饭 35", "打车回家28", "发工资12000", "超市购物156.5微信", "收到红包200")
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AiScreen() {
     val appState = AppGraph.state

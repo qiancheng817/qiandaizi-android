@@ -10,6 +10,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
+import kotlinx.serialization.builtins.MapSerializer
+import kotlinx.serialization.builtins.serializer
 import retrofit2.HttpException
 import java.net.ConnectException
 import java.net.SocketTimeoutException
@@ -238,10 +240,7 @@ fun explainError(e: Throwable): String {
         val serverMsg = body?.let {
             runCatching {
                 val map = AppJson.decodeFromString(
-                    kotlinx.serialization.builtins.MapSerializer(
-                        kotlinx.serialization.builtins.serializer<String>(),
-                        kotlinx.serialization.builtins.serializer<String>()
-                    ),
+                    MapSerializer(String.serializer(), String.serializer()),
                     it
                 )
                 map["error"]

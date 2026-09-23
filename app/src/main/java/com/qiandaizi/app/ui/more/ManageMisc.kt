@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -41,12 +42,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.qiandaizi.app.core.AppGraph
+import com.qiandaizi.app.core.AiParseReq
 import com.qiandaizi.app.core.BillRowDto
 import com.qiandaizi.app.core.FlowReq
 import com.qiandaizi.app.core.TextMain
 import com.qiandaizi.app.core.TextSub
 import com.qiandaizi.app.core.explainError
 import com.qiandaizi.app.core.money
+import com.qiandaizi.app.core.monthCn
+import com.qiandaizi.app.ui.auth.ServerScreen
 import com.qiandaizi.app.ui.common.Pill
 import com.qiandaizi.app.ui.common.SubPageScaffold
 import com.qiandaizi.app.ui.common.WhiteCard
@@ -388,7 +392,7 @@ private fun YearArrow(text: String, onClick: () -> Unit) {
             .size(38.dp)
             .clip(RoundedCornerShape(10.dp))
             .background(Color(0xFFF6F7F9))
-            .clickable(onClick),
+            .clickable { onClick() },
         contentAlignment = Alignment.Center
     ) { Text(text, fontSize = 18.sp, color = Color(0xFF8A6D1B)) }
 }
@@ -467,7 +471,7 @@ private fun MonthDetailDialog(ym: String, onDismiss: () -> Unit) {
         confirmButton = {
             Text("关闭", fontSize = 14.sp, color = com.qiandaizi.app.core.YellowDark,
                 modifier = Modifier
-                    .clickable(onDismiss)
+                    .clickable { onDismiss() }
                     .padding(8.dp))
         }
     )

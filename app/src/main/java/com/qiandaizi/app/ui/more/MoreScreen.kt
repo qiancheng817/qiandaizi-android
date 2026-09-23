@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -36,6 +37,7 @@ import com.qiandaizi.app.core.TextMain
 import com.qiandaizi.app.core.TextSub
 import com.qiandaizi.app.core.Yellow
 import com.qiandaizi.app.ui.Route
+import kotlinx.coroutines.launch
 
 @Composable
 fun MoreScreen(onOpen: (Route) -> Unit) {
@@ -184,7 +186,7 @@ fun MoreScreen(onOpen: (Route) -> Unit) {
 }
 
 @Composable
-private fun ShortcutCard(
+private fun RowScope.ShortcutCard(
     title: String,
     subtitle: String,
     icon: String,

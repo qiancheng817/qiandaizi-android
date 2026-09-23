@@ -46,7 +46,7 @@ import com.qiandaizi.app.core.explainError
 import com.qiandaizi.app.ui.common.ConfirmDialog
 import com.qiandaizi.app.ui.common.TextInputDialog
 import kotlinx.coroutines.launch
-import okhttp3.toHttpUrlOrNull
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
 @Composable
 fun ServerScreen(onBack: (() -> Unit)? = null) {
@@ -235,16 +235,17 @@ fun ServerScreen(onBack: (() -> Unit)? = null) {
             title = "添加服务器",
             placeholder = "http://服务器IP:9600",
             confirmText = "添加",
-            onDismiss = { addDialog = false }
-        ) { input ->
-            addDialog = false
-            scope.launch {
-                runCatching {
-                    validate(input)
-                    state.addServer(input)
-                }.onFailure { errorMsg = explainError(it) }
+            onDismiss = { addDialog = false },
+            onConfirm = { input ->
+                addDialog = false
+                scope.launch {
+                    runCatching {
+                        validate(input)
+                        state.addServer(input)
+                    }.onFailure { errorMsg = explainError(it) }
+                }
             }
-        }
+        )
     }
 
     editTarget?.let { old ->
@@ -252,16 +253,17 @@ fun ServerScreen(onBack: (() -> Unit)? = null) {
             title = "编辑服务器地址",
             initial = old,
             confirmText = "保存",
-            onDismiss = { editTarget = null }
-        ) { input ->
-            editTarget = null
-            scope.launch {
-                runCatching {
-                    validate(input)
-                    state.updateServer(old, input)
-                }.onFailure { errorMsg = explainError(it) }
+            onDismiss = { editTarget = null },
+            onConfirm = { input ->
+                editTarget = null
+                scope.launch {
+                    runCatching {
+                        validate(input)
+                        state.updateServer(old, input)
+                    }.onFailure { errorMsg = explainError(it) }
+                }
             }
-        }
+        )
     }
 
     deleteTarget?.let { url ->

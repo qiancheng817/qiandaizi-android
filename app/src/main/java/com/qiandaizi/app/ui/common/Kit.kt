@@ -356,7 +356,7 @@ fun ErrorRetry(message: String, onRetry: () -> Unit, modifier: Modifier = Modifi
     ) {
         Text(message, color = TextSub, fontSize = 14.sp, textAlign = TextAlign.Center)
         Spacer(Modifier.height(12.dp))
-        GhostButton("重试", onRetry = onRetry)
+        GhostButton("重试", onClick = onRetry)
     }
 }
 

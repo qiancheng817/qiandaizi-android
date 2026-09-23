@@ -211,11 +211,11 @@ fun BooksScreen(onBack: () -> Unit) {
                                         scope.launch {
                                             runCatching {
                                                 appState.api().removeBookMember(
-                                                    appState.bookId!!, m.id
+                                                    appState.bookId()!!, m.id
                                                 )
                                             }.onSuccess {
                                                 members = appState.api()
-                                                    .bookMembers(appState.bookId!!)
+                                                    .bookMembers(appState.bookId()!!)
                                                 appState.notify("已移除成员")
                                             }.onFailure {
                                                 appState.notify(explainError(it))
@@ -249,13 +249,13 @@ fun BooksScreen(onBack: () -> Unit) {
                                 scope.launch {
                                     runCatching {
                                         appState.api().addBookMember(
-                                            appState.bookId!!,
+                                            appState.bookId()!!,
                                             UsernameReq(newMemberName.trim())
                                         )
                                     }.onSuccess {
                                         newMemberName = ""
                                         members = appState.api()
-                                            .bookMembers(appState.bookId!!)
+                                            .bookMembers(appState.bookId()!!)
                                         appState.notify("成员已加入")
                                     }.onFailure {
                                         appState.notify(explainError(it))
@@ -279,33 +279,35 @@ fun BooksScreen(onBack: () -> Unit) {
             title = "新建账本",
             placeholder = "给账本起个名字",
             confirmText = "创建",
-            onDismiss = { addDialog = false }
-        ) { input ->
-            addDialog = false
-            scope.launch {
-                runCatching { appState.api().createBook(BookReq(input)) }
-                    .onSuccess {
-                        load()
-                        appState.notify("账本已创建")
-                    }
-                    .onFailure { appState.notify(explainError(it)) }
+            onDismiss = { addDialog = false },
+            onConfirm = { input ->
+                addDialog = false
+                scope.launch {
+                    runCatching { appState.api().createBook(BookReq(input)) }
+                        .onSuccess {
+                            load()
+                            appState.notify("账本已创建")
+                        }
+                        .onFailure { appState.notify(explainError(it)) }
+                }
             }
-        }
+        )
     }
 
     renameTarget?.let { b ->
         TextInputDialog(
             title = "重命名账本",
             initial = b.name,
-            onDismiss = { renameTarget = null }
-        ) { input ->
-            renameTarget = null
-            scope.launch {
-                runCatching { appState.api().renameBook(b.id, BookReq(input)) }
-                    .onSuccess { load() }
-                    .onFailure { appState.notify(explainError(it)) }
+            onDismiss = { renameTarget = null },
+            onConfirm = { input ->
+                renameTarget = null
+                scope.launch {
+                    runCatching { appState.api().renameBook(b.id, BookReq(input)) }
+                        .onSuccess { load() }
+                        .onFailure { appState.notify(explainError(it)) }
+                }
             }
-        }
+        )
     }
 
     deleteTarget?.let { b ->
