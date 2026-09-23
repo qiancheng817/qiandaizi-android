@@ -58,6 +58,7 @@ import com.qiandaizi.app.ui.more.AccountScreen
 import com.qiandaizi.app.ui.more.AdminUsersScreen
 import com.qiandaizi.app.ui.more.AiSettingsScreen
 import com.qiandaizi.app.ui.more.BooksScreen
+import com.qiandaizi.app.ui.more.SwitchBookScreen
 import com.qiandaizi.app.ui.more.BudgetsScreen
 import com.qiandaizi.app.ui.more.CategoriesScreen
 import com.qiandaizi.app.ui.more.MoreScreen

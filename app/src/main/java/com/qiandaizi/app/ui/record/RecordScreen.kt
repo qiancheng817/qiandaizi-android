@@ -52,6 +52,7 @@ import com.qiandaizi.app.core.TextMain
 import com.qiandaizi.app.core.TextSub
 import com.qiandaizi.app.core.explainError
 import com.qiandaizi.app.core.money
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -60,6 +61,7 @@ import java.util.TimeZone
 private val PanelGray = Color(0xFFF5F6F8)
 private val KeyGray = Color(0xFFF3F4F6)
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecordScreen(
     onBack: () -> Unit,
@@ -510,14 +512,14 @@ private fun RemarkField(
 }
 
 @Composable
-private fun KeypadRow(content: @Composable () -> Unit) {
+private fun KeypadRow(content: @Composable RowScope.() -> Unit) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         content()
     }
 }
 
 @Composable
-private fun KeypadKey(
+private fun RowScope.KeypadKey(
     text: String,
     bg: Color,
     textColor: Color = TextMain,
