@@ -48,6 +48,7 @@ import com.qiandaizi.app.core.TextMain
 import com.qiandaizi.app.core.TextSub
 import com.qiandaizi.app.core.Yellow
 import com.qiandaizi.app.core.YellowDark
+import com.qiandaizi.app.core.explainError
 import com.qiandaizi.app.ui.auth.LoginScreen
 import com.qiandaizi.app.ui.auth.ServerScreen
 import com.qiandaizi.app.ui.ai.AiScreen
