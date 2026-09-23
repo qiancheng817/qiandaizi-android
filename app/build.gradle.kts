@@ -9,12 +9,21 @@ android {
     namespace = "com.qiandaizi.app"
     compileSdk = 35
 
+    signingConfigs {
+        create("release") {
+            storeFile = file(System.getenv("KS_FILE") ?: "release.keystore")
+            storePassword = System.getenv("KS_PASS") ?: "qiandaizi123"
+            keyAlias = System.getenv("KS_ALIAS") ?: "qiandaizi"
+            keyPassword = System.getenv("KEY_PASS") ?: "qiandaizi123"
+        }
+    }
+
     defaultConfig {
         applicationId = "com.qiandaizi.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 3
-        versionName = "1.2.0"
+        versionCode = 4
+        versionName = "1.3.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
     }
@@ -22,6 +31,7 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

@@ -5,8 +5,8 @@
 
 ## 下载安装
 
-- 最新版本：**v1.2.0**
-- 下载地址：[Qiandaizi-v1.2.0.apk](https://github.com/qiancheng817/qiandaizi-android/releases/download/v1.2.0/Qiandaizi-v1.2.0.apk)（约 18.7 MB）
+- 最新版本：**v1.3.0**
+- 下载地址：[Qiandaizi-v1.3.0.apk](https://github.com/qiancheng817/qiandaizi-android/releases/download/v1.3.0/Qiandaizi-v1.3.0.apk)（约 18.7 MB，正式签名包）
 - 系统要求：Android 8.0（API 26）及以上
 - 安装时如提示风险，请选择"允许来自此来源的应用 / 继续安装"
 
@@ -55,7 +55,7 @@
 项目通过 GitHub Actions 在线构建（本机无需 Android 环境）：
 
 - 推送到 `main` 分支自动执行 [.github/workflows/build.yml](.github/workflows/build.yml)
-- 自动执行 `assembleDebug`，并将 APK 发布到 Release（tag `v1.2.0`）
+- 自动执行 `assembleRelease`（正式签名包），并将 APK 发布到 Release（tag `v1.3.0`）
 - 构建产物同时以 artifact（钱袋子-APK）形式保留 30 天
 
 ## 本地构建

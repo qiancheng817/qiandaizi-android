@@ -148,7 +148,7 @@ fun HomeScreen() {
                 end = end,
                 attributionUid = attrUid,
                 page = 1,
-                pageSize = 8
+                pageSize = 300
             )
         }.onSuccess { recent = it.list }
         recentLoading = false
@@ -174,6 +174,19 @@ fun HomeScreen() {
             searchDone = false
         }
     }
+
+    // 最近记录按日期分组（日期倒序），同时汇总当日收支
+    val groupedRecent = recent
+        .groupBy { it.flowTime.take(10) }
+        .toSortedMap(reverseOrder())
+        .map { (date, items) ->
+            DayGroup(
+                date = date,
+                dayExpense = items.filter { it.type == "expense" }.sumOf { it.amount },
+                dayIncome = items.filter { it.type == "income" }.sumOf { it.amount },
+                items = items
+            )
+        }
 
     Column(
         Modifier
@@ -412,27 +425,28 @@ fun HomeScreen() {
                 }
             }
 
-            // ===== 最近记录 =====
+            // ===== 最近记录（按日期分隔） =====
             Spacer(Modifier.height(14.dp))
-            WhiteCard {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        "最近记录",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextMain,
-                        modifier = Modifier.weight(1f)
-                    )
-                    MiniFilter(
-                        options = listOf("all" to "所有", "me" to "我的", "other" to "对方"),
-                        selected = recentFilter,
-                        enabled = if (other != null) setOf("all", "me", "other") else setOf("all", "me"),
-                        onSelect = { recentFilter = it }
-                    )
-                }
-                Spacer(Modifier.height(8.dp))
-                when {
-                    recentLoading -> Box(
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "最近记录",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextMain,
+                    modifier = Modifier.weight(1f)
+                )
+                MiniFilter(
+                    options = listOf("all" to "所有", "me" to "我的", "other" to "对方"),
+                    selected = recentFilter,
+                    enabled = if (other != null) setOf("all", "me", "other") else setOf("all", "me"),
+                    onSelect = { recentFilter = it }
+                )
+            }
+            Spacer(Modifier.height(8.dp))
+
+            when {
+                recentLoading -> WhiteCard {
+                    Box(
                         Modifier.fillMaxWidth().height(80.dp),
                         contentAlignment = Alignment.Center
                     ) {
@@ -442,15 +456,31 @@ fun HomeScreen() {
                             color = com.qiandaizi.app.core.YellowDark
                         )
                     }
-                    recent.isEmpty() -> Text(
+                }
+                groupedRecent.isEmpty() -> WhiteCard {
+                    Text(
                         "本月还没有相关记录，点底部 ＋ 开始记一笔吧",
                         fontSize = 13.sp,
                         color = TextSub,
                         modifier = Modifier.padding(vertical = 18.dp)
                     )
-                    else -> recent.forEach { f ->
-                        val icon = categories.firstOrNull { it.name == f.category }?.icon ?: "💰"
-                        FlowRowSimple(f, icon = icon) { editing = f }
+                }
+                else -> groupedRecent.forEachIndexed { idx, group ->
+                    if (idx > 0) Spacer(Modifier.height(10.dp))
+                    WhiteCard(padding = 14) {
+                        DayHeader(group)
+                        group.items.forEachIndexed { i, f ->
+                            if (i > 0) {
+                                Box(
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .height(1.dp)
+                                        .background(Color(0xFFF2F3F5))
+                                )
+                            }
+                            val icon = categories.firstOrNull { it.name == f.category }?.icon ?: "💰"
+                            FlowRowSimple(f, icon = icon) { editing = f }
+                        }
                     }
                 }
             }
@@ -894,5 +924,77 @@ private fun MonthPickerDialog(
             TextButton(onClick = onDismiss) { Text("取消", color = TextSub) }
         }
     )
+}
+
+/* ==================== 日期分组 ==================== */
+
+private data class DayGroup(
+    val date: String,
+    val dayExpense: Double,
+    val dayIncome: Double,
+    val items: List<FlowDto>
+)
+
+private val WeekNames = listOf("周一", "周二", "周三", "周四", "周五", "周六", "周日")
+
+@Composable
+private fun DayHeader(group: DayGroup) {
+    val localDate = java.time.LocalDate.parse(group.date)
+    val title = "${localDate.monthValue}.${localDate.dayOfMonth} " +
+        WeekNames[(localDate.dayOfWeek.value - 1).coerceIn(0, 6)]
+
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        // 左侧黄色竖条
+        Box(
+            Modifier
+                .size(width = 4.dp, height = 18.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(com.qiandaizi.app.core.YellowDark)
+        )
+        Spacer(Modifier.size(8.dp))
+        Text(
+            title,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Bold,
+            color = TextMain
+        )
+        Spacer(Modifier.size(6.dp))
+        Icon(
+            Icons.Filled.CalendarMonth,
+            contentDescription = null,
+            tint = Color(0xFF9AA0AA),
+            modifier = Modifier.size(16.dp)
+        )
+        Spacer(Modifier.weight(1f))
+        if (group.dayExpense > 0) {
+            DayTotalBadge("支", amount(group.dayExpense),
+                Color(0xFFFDECEC), com.qiandaizi.app.core.ExpenseRed)
+        }
+        if (group.dayIncome > 0) {
+            Spacer(Modifier.size(6.dp))
+            DayTotalBadge("收", amount(group.dayIncome),
+                Color(0xFFEAF1FF), com.qiandaizi.app.core.BrandBlue)
+        }
+    }
+}
+
+@Composable
+private fun DayTotalBadge(
+    tag: String,
+    value: String,
+    bg: Color,
+    fg: Color
+) {
+    Row(
+        Modifier
+            .clip(RoundedCornerShape(7.dp))
+            .background(bg)
+            .padding(horizontal = 8.dp, vertical = 3.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(tag, fontSize = 11.sp, color = fg, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.size(4.dp))
+        Text(value, fontSize = 11.sp, color = fg, fontWeight = FontWeight.Medium)
+    }
 }
 

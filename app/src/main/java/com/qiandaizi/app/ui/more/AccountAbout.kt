@@ -202,7 +202,7 @@ fun AboutScreen(onBack: () -> Unit) {
                     Text("钱袋子", fontSize = 20.sp, fontWeight = FontWeight.Bold,
                         color = TextMain)
                     Spacer(Modifier.height(4.dp))
-                    Text("版本 ${meta?.version ?: "1.1.0"}", fontSize = 12.sp,
+                    Text("版本 ${meta?.version ?: "1.3.0"}", fontSize = 12.sp,
                         color = TextSub)
                 }
             }

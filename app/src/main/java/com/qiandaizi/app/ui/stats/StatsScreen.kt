@@ -2,6 +2,7 @@ package com.qiandaizi.app.ui.stats
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -56,14 +58,25 @@ private val PALETTE = listOf(
     Color(0xFF8B5CF6), Color(0xFF14B8A6), Color(0xFFF97316), Color(0xFF64748B)
 )
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun StatsScreen() {
     val appState = AppGraph.state
 
     var typeIndex by rememberSaveable { mutableIntStateOf(0) } // 0支出 1收入
-    var rangeIndex by rememberSaveable { mutableIntStateOf(0) } // 0本月 1本年
+    var rangeIndex by rememberSaveable { mutableIntStateOf(0) } // 0月 1年 2自定义
     var selMonth by rememberSaveable { mutableStateOf(nowMonth()) }
     var selYear by rememberSaveable { mutableStateOf(nowYear()) }
+
+    // 自定义时间段
+    var customStart by rememberSaveable {
+        mutableStateOf("${nowMonth()}-01")
+    }
+    var customEnd by rememberSaveable {
+        mutableStateOf(com.qiandaizi.app.core.today())
+    }
+    var queryNonce by remember { mutableIntStateOf(0) }
+    var pickerTarget by remember { mutableStateOf<Int?>(null) } // 0起 1止
 
     var overview by remember { mutableStateOf<com.qiandaizi.app.core.OverviewDto?>(null) }
     var category by remember { mutableStateOf<List<com.qiandaizi.app.core.NameValueDto>>(emptyList()) }
@@ -73,12 +86,21 @@ fun StatsScreen() {
     var errorMsg by remember { mutableStateOf<String?>(null) }
 
     val type = if (typeIndex == 1) "income" else "expense"
-    val period = if (rangeIndex == 0) monthRange(selMonth)
-    else ("$selYear-01-01" to "$selYear-12-31")
-    val barYear = if (rangeIndex == 0) selMonth.substring(0, 4).toInt()
-    else selYear.toInt()
+    val period = when (rangeIndex) {
+        1 -> ("$selYear-01-01" to "$selYear-12-31")
+        2 -> (customStart to customEnd)
+        else -> monthRange(selMonth)
+    }
+    val barYear = when (rangeIndex) {
+        1 -> selYear.toInt()
+        2 -> customStart.substring(0, 4).toInt()
+        else -> selMonth.substring(0, 4).toInt()
+    }
 
-    LaunchedEffect(typeIndex, rangeIndex, selMonth, selYear, appState.epoch) {
+    LaunchedEffect(
+        typeIndex, rangeIndex, selMonth, selYear,
+        customStart, customEnd, queryNonce, appState.epoch
+    ) {
         errorMsg = null
         runCatching {
             val api = appState.api()
@@ -108,7 +130,7 @@ fun StatsScreen() {
                 .fillMaxWidth()
                 .background(com.qiandaizi.app.core.Yellow)
                 .statusBarsPadding()
-                .padding(start = 20.dp, top = 8.dp, bottom = 20.dp)
+                .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 20.dp)
         ) {
             Text("统计", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = TextMain)
             Spacer(Modifier.height(14.dp))
@@ -119,7 +141,7 @@ fun StatsScreen() {
                     onSelect = { typeIndex = it }
                 )
                 SegmentedTabs(
-                    options = listOf("本月", "本年"),
+                    options = listOf("月", "年", "自定义"),
                     selected = rangeIndex,
                     onSelect = { rangeIndex = it }
                 )
@@ -128,17 +150,30 @@ fun StatsScreen() {
 
         Column(Modifier.padding(14.dp)) {
 
-            if (rangeIndex == 0) {
-                PeriodStepper(
-                    text = monthCn(selMonth),
-                    onPrev = { selMonth = addMonth(selMonth, -1) },
-                    onNext = { selMonth = addMonth(selMonth, 1) }
+            when (rangeIndex) {
+                2 -> CustomRangePanel(
+                    start = customStart,
+                    end = customEnd,
+                    onPickStart = { pickerTarget = 0 },
+                    onPickEnd = { pickerTarget = 1 },
+                    onQuery = {
+                        if (customStart > customEnd) {
+                            errorMsg = "开始日期不能晚于结束日期"
+                        } else {
+                            queryNonce++
+                            appState.notify("按自定义时间段查询")
+                        }
+                    }
                 )
-            } else {
-                PeriodStepper(
+                1 -> PeriodStepper(
                     text = "$selYear 年",
                     onPrev = { selYear = (selYear.toInt() - 1).toString() },
                     onNext = { selYear = (selYear.toInt() + 1).toString() }
+                )
+                else -> PeriodStepper(
+                    text = monthCn(selMonth),
+                    onPrev = { selMonth = addMonth(selMonth, -1) },
+                    onNext = { selMonth = addMonth(selMonth, 1) }
                 )
             }
 
@@ -311,6 +346,104 @@ fun StatsScreen() {
                 }
             Spacer(Modifier.height(20.dp))
         }
+    }
+
+    // 自定义时间段日期选择
+    pickerTarget?.let { target ->
+        val initial = if (target == 0) customStart else customEnd
+        val millis = remember(initial) {
+            runCatching {
+                val fmt = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.CHINA).apply {
+                    timeZone = java.util.TimeZone.getTimeZone("UTC")
+                }
+                fmt.parse(initial)?.time
+            }.getOrNull()
+        }
+        val state = androidx.compose.material3.rememberDatePickerState(
+            initialSelectedDateMillis = millis
+        )
+        androidx.compose.material3.DatePickerDialog(
+            onDismissRequest = { pickerTarget = null },
+            confirmButton = {
+                Text("确定", color = com.qiandaizi.app.core.YellowDark,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable {
+                            state.selectedDateMillis?.let { ms ->
+                                val fmt = java.text.SimpleDateFormat(
+                                    "yyyy-MM-dd", java.util.Locale.CHINA
+                                ).apply {
+                                    timeZone = java.util.TimeZone.getTimeZone("UTC")
+                                }
+                                val picked = fmt.format(java.util.Date(ms))
+                                if (target == 0) customStart = picked else customEnd = picked
+                            }
+                            pickerTarget = null
+                        }
+                        .padding(8.dp))
+            },
+            dismissButton = {
+                Text("取消", color = TextSub,
+                    modifier = Modifier
+                        .clickable { pickerTarget = null }
+                        .padding(8.dp))
+            }
+        ) {
+            androidx.compose.material3.DatePicker(state = state)
+        }
+    }
+}
+
+/** 自定义时间段面板（手机适配：起止日期一行，查询按钮通栏） */
+@Composable
+private fun CustomRangePanel(
+    start: String,
+    end: String,
+    onPickStart: () -> Unit,
+    onPickEnd: () -> Unit,
+    onQuery: () -> Unit
+) {
+    WhiteCard {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            DateBox(start, Modifier.weight(1f), onPickStart)
+            Text(" 至 ", fontSize = 13.sp, color = TextSub)
+            DateBox(end, Modifier.weight(1f), onPickEnd)
+        }
+        Spacer(Modifier.height(12.dp))
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(22.dp))
+                .background(Color(0xFF6366F1))
+                .clickable { onQuery() }
+                .padding(vertical = 12.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text("查询", color = Color.White, fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold)
+        }
+    }
+}
+
+@Composable
+private fun DateBox(date: String, modifier: Modifier, onClick: () -> Unit) {
+    Row(
+        modifier
+            .clip(RoundedCornerShape(10.dp))
+            .background(Color(0xFFF6F7F9))
+            .clickable { onClick() }
+            .padding(horizontal = 10.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            Icons.Filled.CalendarMonth,
+            contentDescription = null,
+            tint = com.qiandaizi.app.core.YellowDark,
+            modifier = Modifier.size(15.dp)
+        )
+        Spacer(Modifier.size(5.dp))
+        Text(date, fontSize = 12.sp, color = TextMain)
     }
 }
 

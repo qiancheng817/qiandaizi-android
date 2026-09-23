@@ -79,6 +79,7 @@ fun RecordScreen(
     var saving by remember { mutableStateOf(false) }
     var errorMsg by remember { mutableStateOf<String?>(null) }
     var datePickerOpen by remember { mutableStateOf(false) }
+    var panelCollapsed by remember { mutableStateOf(false) }
 
     LaunchedEffect(appState.epoch) {
         runCatching { appState.api().categories() }
@@ -174,6 +175,25 @@ fun RecordScreen(
             }
             Spacer(Modifier.weight(1f))
 
+            // 折叠/展开底部面板：折叠后展示更多分类
+            Box(
+                Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(Color.White)
+                    .clickable { panelCollapsed = !panelCollapsed },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    if (panelCollapsed) Icons.Filled.KeyboardArrowUp
+                    else Icons.Filled.KeyboardArrowDown,
+                    contentDescription = if (panelCollapsed) "展开面板" else "折叠面板",
+                    tint = Color(0xFF555555),
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+            Spacer(Modifier.size(8.dp))
+
             // 设置 → 类目管理
             Box(
                 Modifier
@@ -222,7 +242,8 @@ fun RecordScreen(
             Spacer(Modifier.height(8.dp))
         }
 
-        // ============ 底部面板 ============
+        // ============ 底部面板（可折叠） ============
+        if (!panelCollapsed) {
         Surface(
             color = Color.White,
             shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
@@ -374,6 +395,7 @@ fun RecordScreen(
                     }
                 }
             }
+        }
         }
     }
 

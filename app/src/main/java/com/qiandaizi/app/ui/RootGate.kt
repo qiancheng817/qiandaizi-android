@@ -255,18 +255,16 @@ private fun BottomBar(tab: Int, onSelect: (Int) -> Unit) {
         Row(
             Modifier
                 .fillMaxWidth()
-                .height(64.dp)
-                .padding(top = 6.dp),
+                .height(64.dp),
             horizontalArrangement = Arrangement.SpaceAround,
-            verticalAlignment = Alignment.Top
+            verticalAlignment = Alignment.CenterVertically
         ) {
             tabs.forEachIndexed { i, item ->
                 if (item.isCenter) {
-                    // 中间凸起 +
+                    // 中间 +：与其他图标同排，不凸出，完整显示
                     Box(
                         Modifier
-                            .size(56.dp)
-                            .offset(y = (-14).dp)
+                            .size(46.dp)
                             .clip(CircleShape)
                             .background(Yellow)
                             .clickable(
@@ -279,7 +277,7 @@ private fun BottomBar(tab: Int, onSelect: (Int) -> Unit) {
                             Icons.Filled.Add,
                             contentDescription = "记一笔",
                             tint = TextMain,
-                            modifier = Modifier.size(32.dp)
+                            modifier = Modifier.size(28.dp)
                         )
                     }
                 } else {
