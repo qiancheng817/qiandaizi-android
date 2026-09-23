@@ -32,7 +32,7 @@ jobs:
       - name: Prepare release keystore
         run: |
           keytool -genkeypair -v \
-            -keystore release.keystore \
+            -keystore app/release.keystore \
             -alias qiandaizi \
             -keyalg RSA -keysize 2048 -validity 10000 \
             -storepass qiandaizi123 -keypass qiandaizi123 \
