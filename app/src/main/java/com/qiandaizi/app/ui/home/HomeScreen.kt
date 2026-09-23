@@ -1,0 +1,896 @@
+package com.qiandaizi.app.ui.home
+
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Sync
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.qiandaizi.app.core.AppGraph
+import com.qiandaizi.app.core.AttrMember
+import com.qiandaizi.app.core.BudgetDataDto
+import com.qiandaizi.app.core.CategoryDto
+import com.qiandaizi.app.core.DailyDto
+import com.qiandaizi.app.core.FlowDto
+import com.qiandaizi.app.core.MoneyBagsDto
+import com.qiandaizi.app.core.TextMain
+import com.qiandaizi.app.core.TextSub
+import com.qiandaizi.app.core.addMonth
+import com.qiandaizi.app.core.amount
+import com.qiandaizi.app.core.explainError
+import com.qiandaizi.app.core.md
+import com.qiandaizi.app.core.money
+import com.qiandaizi.app.core.monthCn
+import com.qiandaizi.app.core.nowMonth
+import com.qiandaizi.app.ui.common.EmptyHint
+import com.qiandaizi.app.ui.common.LoadingBox
+import com.qiandaizi.app.ui.common.WhiteCard
+import com.qiandaizi.app.ui.record.FlowEditorSheet
+import kotlinx.coroutines.launch
+import kotlin.math.min
+
+private val BubbleCream = Color(0xFFFFFBE8)
+private val SoftGrayBox = Color(0xFFF3F4F6)
+
+@Composable
+fun HomeScreen() {
+    val appState = AppGraph.state
+    val scope = rememberCoroutineScope()
+
+    var month by rememberSaveable { mutableStateOf(nowMonth()) }
+    var bagIndex by rememberSaveable { mutableStateOf(0) } // 默认总钱袋
+    var calOpen by rememberSaveable { mutableStateOf(false) }
+    var monthDialog by remember { mutableStateOf(false) }
+
+    var bags by remember { mutableStateOf<MoneyBagsDto?>(null) }
+    var calendar by remember { mutableStateOf<List<DailyDto>>(emptyList()) }
+    var members by remember { mutableStateOf<List<AttrMember>>(emptyList()) }
+    var recent by remember { mutableStateOf<List<FlowDto>>(emptyList()) }
+    var recentFilter by rememberSaveable { mutableStateOf("all") }
+    var budget by remember { mutableStateOf<BudgetDataDto?>(null) }
+    var categories by remember { mutableStateOf<List<CategoryDto>>(emptyList()) }
+    var loadError by remember { mutableStateOf<String?>(null) }
+    var recentLoading by remember { mutableStateOf(false) }
+
+    var searchOpen by remember { mutableStateOf(false) }
+    var keyword by remember { mutableStateOf("") }
+    var searchResults by remember { mutableStateOf<List<FlowDto>>(emptyList()) }
+    var searchDone by remember { mutableStateOf(false) }
+
+    var editing by remember { mutableStateOf<FlowDto?>(null) }
+
+    val me = appState.user()
+    val other = members.firstOrNull { it.id != me?.id }
+    val bagTitles = buildList {
+        add("总钱袋")
+        add("我的钱袋")
+        if (other != null) add("对方的钱袋")
+    }
+
+    // 主数据：钱袋 + 日历热力 + 成员
+    LaunchedEffect(month, appState.epoch) {
+        loadError = null
+        runCatching {
+            val api = appState.api()
+            val mb = api.moneybags(month)
+            val cal = api.statCalendar(month)
+            val attr = if (members.isEmpty()) api.attributions() else null
+            val cats = api.categories()
+            FourData(mb, cal, attr, cats)
+        }.onSuccess { d ->
+            bags = d.mb
+            calendar = d.cal
+            d.attr?.let {
+                members = it.members
+            }
+            categories = d.cats
+        }.onFailure { loadError = explainError(it) }
+    }
+
+    // 最近记录
+    LaunchedEffect(month, recentFilter, appState.epoch) {
+        recentLoading = true
+        runCatching {
+            val (start, end) = com.qiandaizi.app.core.monthRange(month)
+            val attrUid = when (recentFilter) {
+                "me" -> me?.id
+                "other" -> other?.id
+                else -> null
+            }
+            appState.api().flows(
+                start = start,
+                end = end,
+                attributionUid = attrUid,
+                page = 1,
+                pageSize = 8
+            )
+        }.onSuccess { recent = it.list }
+        recentLoading = false
+    }
+
+    // 年预算
+    LaunchedEffect(month, appState.epoch) {
+        runCatching {
+            appState.api().budgets(month.substring(0, 4).toInt())
+        }.onSuccess { budget = it }
+    }
+
+    // 搜索
+    LaunchedEffect(keyword) {
+        if (searchOpen && keyword.isNotBlank()) {
+            runCatching { appState.api().flows(keyword = keyword, pageSize = 30) }
+                .onSuccess {
+                    searchResults = it.list
+                    searchDone = true
+                }
+        } else {
+            searchResults = emptyList()
+            searchDone = false
+        }
+    }
+
+    Column(
+        Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+    ) {
+        // ===== 黄色顶部 =====
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .background(com.qiandaizi.app.core.Yellow)
+                .padding(start = 14.dp, end = 14.dp, top = 14.dp, bottom = 26.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                BubbleSwitcher(
+                    titles = bagTitles,
+                    index = bagIndex,
+                    onCycle = { delta ->
+                        bagIndex = (bagIndex + delta + bagTitles.size) % bagTitles.size
+                    }
+                )
+                Spacer(Modifier.weight(1f))
+                // 搜索账单胶囊
+                Row(
+                    Modifier
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(Color(0xCCFFFFFF))
+                        .clickable {
+                            searchOpen = !searchOpen
+                            if (!searchOpen) keyword = ""
+                        }
+                        .padding(start = 16.dp, end = 12.dp, top = 10.dp, bottom = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        if (searchOpen) "收起搜索" else "搜索账单",
+                        fontSize = 14.sp,
+                        color = Color(0xFF666666)
+                    )
+                    Spacer(Modifier.size(8.dp))
+                    Icon(
+                        if (searchOpen) Icons.Filled.Close else Icons.Filled.Search,
+                        contentDescription = null,
+                        tint = Color(0xFF999999),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+        }
+
+        Column(Modifier.padding(horizontal = 14.dp)) {
+
+            if (searchOpen) {
+                WhiteCard(modifier = Modifier.padding(bottom = 14.dp)) {
+                    OutlinedTextField(
+                        value = keyword,
+                        onValueChange = { keyword = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = { Text("输入关键词搜索全部账单", color = TextSub) },
+                        singleLine = true,
+                        leadingIcon = {
+                            Icon(
+                                Icons.Filled.Search,
+                                contentDescription = null,
+                                tint = TextSub
+                            )
+                        },
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    when {
+                        keyword.isBlank() -> Text("输入后自动搜索", fontSize = 13.sp, color = TextSub)
+                        searchDone && searchResults.isEmpty() ->
+                            Text("没有找到相关账单", fontSize = 13.sp, color = TextSub)
+                        else -> searchResults.take(20).forEach { f ->
+                            val icon = categories.firstOrNull { it.name == f.category }?.icon ?: "💰"
+                            FlowRowSimple(f, icon = icon) { editing = f }
+                        }
+                    }
+                }
+            }
+
+            // ===== 主卡片 =====
+            WhiteCard {
+                if (bags == null) {
+                    if (loadError != null) {
+                        Text(loadError!!, fontSize = 13.sp, color = TextSub)
+                    } else {
+                        Box(Modifier.fillMaxWidth().height(120.dp), contentAlignment = Alignment.Center) {
+                            androidx.compose.material3.CircularProgressIndicator(
+                                color = com.qiandaizi.app.core.YellowDark
+                            )
+                        }
+                    }
+                } else {
+                    val data = bags!!
+
+                    val meBucket = data.buckets.find { it.uid == me?.id }
+                    val otherBucket = data.buckets.find { it.uid != null && it.uid != me?.id }
+
+                    // 支/收/余
+                    val expense: Double
+                    val income: Double
+                    val balance: Double
+                    val yearBalance: Double?
+                    when (bagTitles[bagIndex]) {
+                        "我的钱袋" -> {
+                            expense = meBucket?.monthExpense ?: 0.0
+                            income = meBucket?.monthIncome ?: 0.0
+                            balance = income - expense
+                            yearBalance = (meBucket?.yearIncome ?: 0.0) - (meBucket?.yearExpense ?: 0.0)
+                        }
+                        "对方的钱袋" -> {
+                            expense = otherBucket?.monthExpense ?: 0.0
+                            income = otherBucket?.monthIncome ?: 0.0
+                            balance = income - expense
+                            yearBalance = (otherBucket?.yearIncome ?: 0.0) - (otherBucket?.yearExpense ?: 0.0)
+                        }
+                        else -> {
+                            expense = data.total.expense
+                            income = data.total.income
+                            balance = data.total.balance
+                            yearBalance = null
+                        }
+                    }
+
+                    // 顶部行：月份 + 日历 + 同步
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(
+                            Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(com.qiandaizi.app.core.YellowSoft)
+                                .clickable(enabled = bagTitles[bagIndex] != "总钱袋") {
+                                    monthDialog = true
+                                }
+                                .padding(horizontal = 14.dp, vertical = 9.dp)
+                        ) {
+                            Text(
+                                if (bagTitles[bagIndex] == "总钱袋") "全部记录"
+                                else monthCn(month),
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = TextMain
+                            )
+                            if (bagTitles[bagIndex] != "总钱袋") {
+                                Text("  ›", fontSize = 15.sp, color = TextMain)
+                            }
+                        }
+                        Spacer(Modifier.weight(1f))
+                        CircleIconBtn(
+                            icon = Icons.Filled.CalendarMonth,
+                            active = calOpen,
+                            onClick = { calOpen = !calOpen }
+                        )
+                        Spacer(Modifier.size(10.dp))
+                        CircleIconBtn(
+                            icon = Icons.Filled.Sync,
+                            active = appState.syncing,
+                            spin = appState.syncing,
+                            onClick = {
+                                scope.launch {
+                                    if (appState.sync()) appState.notify("已与服务器同步")
+                                    else appState.notify("同步失败：无法连接服务器")
+                                }
+                            }
+                        )
+                    }
+
+                    Spacer(Modifier.height(20.dp))
+
+                    // 支
+                    AmountRow(
+                        badge = "支",
+                        value = "¥${amount(expense)}",
+                        valueColor = com.qiandaizi.app.core.BrandBlue,
+                        big = true
+                    )
+                    Spacer(Modifier.height(14.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        AmountRow(
+                            badge = "收",
+                            value = "¥${amount(income)}",
+                            valueColor = com.qiandaizi.app.core.ExpenseRed,
+                            big = true,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Spacer(Modifier.size(12.dp))
+                        AmountRow(
+                            badge = "余",
+                            value = (if (balance >= 0) "" else "-") +
+                                "¥${amount(kotlin.math.abs(balance))}",
+                            valueColor = com.qiandaizi.app.core.IncomeGreen,
+                            big = false,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    if (yearBalance != null) {
+                        Spacer(Modifier.height(12.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                "${data.year}年结余",
+                                fontSize = 13.sp,
+                                color = TextSub
+                            )
+                            Spacer(Modifier.size(8.dp))
+                            Text(
+                                (if (yearBalance >= 0) "" else "-") + money(kotlin.math.abs(yearBalance)),
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (yearBalance >= 0) com.qiandaizi.app.core.IncomeGreen
+                                else com.qiandaizi.app.core.ExpenseRed
+                            )
+                        }
+                    }
+
+                    // 年预算进度
+                    val b = budget
+                    if (b != null && b.total.amount > 0) {
+                        Spacer(Modifier.height(16.dp))
+                        BudgetBar(b)
+                    }
+
+                    // 消费日历
+                    if (calOpen) {
+                        Spacer(Modifier.height(18.dp))
+                        CalendarHeatmap(
+                            month = month,
+                            calendar = calendar,
+                            onChangeMonth = { delta ->
+                                month = addMonth(month, delta)
+                            }
+                        )
+                    }
+                }
+            }
+
+            // ===== 最近记录 =====
+            Spacer(Modifier.height(14.dp))
+            WhiteCard {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "最近记录",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextMain,
+                        modifier = Modifier.weight(1f)
+                    )
+                    MiniFilter(
+                        options = listOf("all" to "所有", "me" to "我的", "other" to "对方"),
+                        selected = recentFilter,
+                        enabled = if (other != null) setOf("all", "me", "other") else setOf("all", "me"),
+                        onSelect = { recentFilter = it }
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
+                when {
+                    recentLoading -> Box(
+                        Modifier.fillMaxWidth().height(80.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        androidx.compose.material3.CircularProgressIndicator(
+                            modifier = Modifier.size(22.dp),
+                            strokeWidth = 2.dp,
+                            color = com.qiandaizi.app.core.YellowDark
+                        )
+                    }
+                    recent.isEmpty() -> Text(
+                        "本月还没有相关记录，点底部 ＋ 开始记一笔吧",
+                        fontSize = 13.sp,
+                        color = TextSub,
+                        modifier = Modifier.padding(vertical = 18.dp)
+                    )
+                    else -> recent.forEach { f ->
+                        val icon = categories.firstOrNull { it.name == f.category }?.icon ?: "💰"
+                        FlowRowSimple(f, icon = icon) { editing = f }
+                    }
+                }
+            }
+            Spacer(Modifier.height(20.dp))
+        }
+    }
+
+    editing?.let { f ->
+        FlowEditorSheet(
+            flow = f,
+            categories = categories,
+            onDismiss = { editing = null },
+            onChanged = {}
+        )
+    }
+
+    if (monthDialog) {
+        MonthPickerDialog(
+            month = month,
+            onPick = {
+                month = it
+                monthDialog = false
+            },
+            onDismiss = { monthDialog = false }
+        )
+    }
+}
+
+/* ==================== 气泡切换器（图2） ==================== */
+
+@Composable
+private fun BubbleSwitcher(
+    titles: List<String>,
+    index: Int,
+    onCycle: (Int) -> Unit
+) {
+    Column {
+        Row(
+            Modifier
+                .clip(RoundedCornerShape(26.dp))
+                .background(BubbleCream)
+                .padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "‹",
+                fontSize = 22.sp,
+                color = com.qiandaizi.app.core.YellowDark,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier
+                    .size(26.dp)
+                    .clickable { onCycle(-1) },
+                textAlign = TextAlign.Center
+            )
+            Spacer(Modifier.size(4.dp))
+            Text("👛", fontSize = 18.sp)
+            Spacer(Modifier.size(8.dp))
+            Text(
+                titles[index],
+                fontSize = 17.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF555555)
+            )
+            Spacer(Modifier.size(4.dp))
+            Text(
+                "›",
+                fontSize = 22.sp,
+                color = com.qiandaizi.app.core.YellowDark,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier
+                    .size(26.dp)
+                    .clickable { onCycle(1) },
+                textAlign = TextAlign.Center
+            )
+        }
+        // 小三角
+        Canvas(Modifier.padding(start = 30.dp).size(12.dp, 8.dp)) {
+            val path = Path().apply {
+                moveTo(0f, 0f)
+                lineTo(size.width, 0f)
+                lineTo(size.width / 2, size.height)
+                close()
+            }
+            drawPath(path, BubbleCream)
+        }
+    }
+}
+
+/* ==================== 小组件 ==================== */
+
+@Composable
+private fun CircleIconBtn(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    active: Boolean,
+    spin: Boolean = false,
+    onClick: () -> Unit
+) {
+    Box(
+        Modifier
+            .size(40.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (active) com.qiandaizi.app.core.YellowSoft else SoftGrayBox)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = if (active) Color(0xFF8A6D1B) else Color(0xFF8A8F98),
+            modifier = Modifier
+                .size(20.dp)
+                .then(if (spin) Modifier else Modifier)
+        )
+    }
+}
+
+@Composable
+private fun AmountRow(
+    badge: String,
+    value: String,
+    valueColor: Color,
+    big: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            Modifier
+                .size(if (big) 42.dp else 38.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(SoftGrayBox),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                badge,
+                fontSize = if (big) 16.sp else 15.sp,
+                color = Color(0xFF777C85),
+                fontWeight = FontWeight.Medium
+            )
+        }
+        Spacer(Modifier.size(12.dp))
+        Text(
+            value,
+            fontSize = if (big) 27.sp else 22.sp,
+            fontWeight = FontWeight.Bold,
+            color = valueColor,
+            maxLines = 1
+        )
+    }
+}
+
+@Composable
+private fun BudgetBar(b: BudgetDataDto) {
+    val over = b.total.remaining < 0
+    val percent = if (b.total.amount > 0)
+        (b.total.spent / b.total.amount).toFloat() else 0f
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color(0xFFFAFAFA))
+            .padding(14.dp)
+    ) {
+        Row {
+            Text(
+                if (over) "今年预算已超支 " else "今年预算已用 ",
+                fontSize = 14.sp,
+                color = TextMain
+            )
+            Text(
+                money(if (over) -b.total.remaining else b.total.spent),
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                color = if (over) com.qiandaizi.app.core.ExpenseRed
+                else com.qiandaizi.app.core.YellowDark
+            )
+        }
+        Spacer(Modifier.height(10.dp))
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(10.dp)
+                .clip(RoundedCornerShape(5.dp))
+                .background(Color(0xFFEEEEEE))
+        ) {
+            Box(
+                Modifier
+                    .fillMaxWidth(min(percent, 1f))
+                    .height(10.dp)
+                    .clip(RoundedCornerShape(5.dp))
+                    .background(
+                        if (over) com.qiandaizi.app.core.ExpenseRed
+                        else com.qiandaizi.app.core.Yellow
+                    )
+            )
+        }
+    }
+}
+
+@Composable
+private fun MiniFilter(
+    options: List<Pair<String, String>>,
+    selected: String,
+    enabled: Set<String>,
+    onSelect: (String) -> Unit
+) {
+    Row(
+        Modifier
+            .clip(RoundedCornerShape(9.dp))
+            .background(Color(0xFFF2F3F5))
+            .padding(3.dp)
+    ) {
+        options.forEach { (key, label) ->
+            val active = key == selected
+            val clickable = key in enabled
+            Box(
+                Modifier
+                    .clip(RoundedCornerShape(7.dp))
+                    .background(if (active) Color.White else Color.Transparent)
+                    .clickable(enabled = clickable) { onSelect(key) }
+                    .padding(horizontal = 10.dp, vertical = 6.dp)
+            ) {
+                Text(
+                    label,
+                    fontSize = 12.sp,
+                    color = if (!clickable) Color(0xFFC8CBD0)
+                    else if (active) com.qiandaizi.app.core.YellowDark else TextSub,
+                    fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun FlowRowSimple(f: FlowDto, icon: String = "💰", onClick: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            Modifier
+                .size(38.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(Color(0xFFF5F6F8)),
+            contentAlignment = Alignment.Center
+        ) { Text(icon, fontSize = 18.sp) }
+        Spacer(Modifier.size(10.dp))
+        Column(Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (f.source == "ai") {
+                    Box(
+                        Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(com.qiandaizi.app.core.YellowSoft)
+                            .padding(horizontal = 4.dp, vertical = 1.dp)
+                    ) {
+                        Text(
+                            "AI",
+                            fontSize = 9.sp,
+                            color = Color(0xFF8A6D1B),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Spacer(Modifier.size(5.dp))
+                }
+                Text(
+                    f.category + (if (f.description.isNotBlank()) " · ${f.description}" else ""),
+                    fontSize = 14.sp,
+                    color = TextMain,
+                    maxLines = 1
+                )
+            }
+            Text(
+                "${md(f.flowTime)} · ${f.attribution.ifBlank { "—" }}",
+                fontSize = 12.sp,
+                color = TextSub,
+                modifier = Modifier.padding(top = 2.dp)
+            )
+        }
+        Text(
+            (if (f.type == "income") "+" else "-") + amount(f.amount),
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Bold,
+            color = if (f.type == "income") com.qiandaizi.app.core.IncomeGreen
+            else TextMain
+        )
+    }
+}
+
+/* ==================== 消费日历热力图 ==================== */
+
+@Composable
+private fun CalendarHeatmap(
+    month: String,
+    calendar: List<DailyDto>,
+    onChangeMonth: (Int) -> Unit
+) {
+    val calMap = calendar.associateBy { it.date }
+    val maxExpense = calendar.maxOfOrNull { it.expense } ?: 1.0
+
+    val first = java.time.LocalDate.parse("${month}-01")
+    val leadingBlanks = first.dayOfWeek.value % 7 // 周日=0
+    val daysInMonth = first.lengthOfMonth()
+
+    Column {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("‹", fontSize = 18.sp, color = TextMain,
+                modifier = Modifier
+                    .size(32.dp)
+                    .clickable { onChangeMonth(-1) },
+                textAlign = TextAlign.Center)
+            Text(
+                monthCn(month),
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+                color = TextMain,
+                modifier = Modifier.weight(1f),
+                textAlign = TextAlign.Center
+            )
+            Text("›", fontSize = 18.sp, color = TextMain,
+                modifier = Modifier
+                    .size(32.dp)
+                    .clickable { onChangeMonth(1) },
+                textAlign = TextAlign.Center)
+        }
+        Spacer(Modifier.height(6.dp))
+        Row(Modifier.fillMaxWidth()) {
+            listOf("日", "一", "二", "三", "四", "五", "六").forEach { w ->
+                Text(
+                    w, fontSize = 12.sp, color = TextSub,
+                    modifier = Modifier.weight(1f), textAlign = TextAlign.Center
+                )
+            }
+        }
+        Spacer(Modifier.height(4.dp))
+
+        val cells = buildList {
+            repeat(leadingBlanks) { add(null) }
+            for (d in 1..daysInMonth) {
+                add("${month}-%02d".format(d))
+            }
+        }.chunked(7)
+
+        cells.forEach { week ->
+            Row(Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
+                for (i in 0 until 7) {
+                    val date = week.getOrNull(i)
+                    Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                        if (date != null) {
+                            val day = calMap[date]
+                            val heat = if (day != null && day.expense > 0)
+                                min(1.0, day.expense / maxExpense).toFloat() else 0f
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Box(
+                                    Modifier
+                                        .size(26.dp)
+                                        .clip(RoundedCornerShape(7.dp))
+                                        .background(
+                                            if (heat > 0) com.qiandaizi.app.core.ExpenseRed.copy(
+                                                alpha = 0.12f + heat * 0.55f
+                                            ) else Color.Transparent
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        date.substring(8).trimStart('0'),
+                                        fontSize = 12.sp,
+                                        color = TextMain
+                                    )
+                                }
+                                if (day != null && day.expense > 0) {
+                                    Text(
+                                        "-${day.expense.toInt()}",
+                                        fontSize = 8.sp,
+                                        color = com.qiandaizi.app.core.ExpenseRed
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/* ==================== 月份选择弹窗 ==================== */
+
+@Composable
+private fun MonthPickerDialog(
+    month: String,
+    onPick: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var m by remember { mutableStateOf(month) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "‹", fontSize = 22.sp, color = TextMain,
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clickable { m = addMonth(m, -1) },
+                    textAlign = TextAlign.Center
+                )
+                Text(
+                    monthCn(m),
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f),
+                    textAlign = TextAlign.Center
+                )
+                Text(
+                    "›", fontSize = 22.sp, color = TextMain,
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clickable { m = addMonth(m, 1) },
+                    textAlign = TextAlign.Center
+                )
+            }
+        },
+        text = {
+            TextButton(onClick = { m = nowMonth() }, modifier = Modifier.fillMaxWidth()) {
+                Text("回到本月", color = com.qiandaizi.app.core.YellowDark)
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onPick(m) }) {
+                Text("确定", color = com.qiandaizi.app.core.YellowDark)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("取消", color = TextSub) }
+        }
+    )
+}
+
+/* ==================== 数据载体 ==================== */
+
+private data class FourData(
+    val mb: MoneyBagsDto,
+    val cal: List<DailyDto>,
+    val attr: com.qiandaizi.app.core.AttrListDto?,
+    val cats: List<CategoryDto>
+)

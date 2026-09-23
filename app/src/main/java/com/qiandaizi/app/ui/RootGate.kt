@@ -1,0 +1,256 @@
+package com.qiandaizi.app.ui
+
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Apps
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.PieChart
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.qiandaizi.app.core.AppGraph
+import com.qiandaizi.app.core.CardWhite
+import com.qiandaizi.app.core.TextMain
+import com.qiandaizi.app.core.TextSub
+import com.qiandaizi.app.core.Yellow
+import com.qiandaizi.app.core.YellowDark
+import com.qiandaizi.app.ui.auth.LoginScreen
+import com.qiandaizi.app.ui.auth.ServerScreen
+import com.qiandaizi.app.ui.ai.AiScreen
+import com.qiandaizi.app.ui.home.HomeScreen
+import com.qiandaizi.app.ui.more.AboutScreen
+import com.qiandaizi.app.ui.more.AccountScreen
+import com.qiandaizi.app.ui.more.AdminUsersScreen
+import com.qiandaizi.app.ui.more.AiSettingsScreen
+import com.qiandaizi.app.ui.more.BooksScreen
+import com.qiandaizi.app.ui.more.BudgetsScreen
+import com.qiandaizi.app.ui.more.CategoriesScreen
+import com.qiandaizi.app.ui.more.MoreScreen
+import com.qiandaizi.app.ui.more.OpLogsScreen
+import com.qiandaizi.app.ui.more.PresetsScreen
+import com.qiandaizi.app.ui.more.RecurringScreen
+import com.qiandaizi.app.ui.more.SavingsScreen
+import com.qiandaizi.app.ui.more.TrashScreen
+import com.qiandaizi.app.ui.more.WalletDetailScreen
+import com.qiandaizi.app.ui.more.WalletsScreen
+import com.qiandaizi.app.ui.record.RecordScreen
+import com.qiandaizi.app.ui.stats.StatsScreen
+import kotlinx.coroutines.delay
+
+/* ================= 子页面路由 ================= */
+
+sealed interface Route {
+    data object Books : Route
+    data object Categories : Route
+    data object Budgets : Route
+    data object Recurring : Route
+    data object Savings : Route
+    data object Wallets : Route
+    data class WalletDetail(val id: Int, val name: String) : Route
+    data object Presets : Route
+    data object AdminUsers : Route
+    data object AiSettings : Route
+    data object Trash : Route
+    data object OpLogs : Route
+    data object Account : Route
+    data object About : Route
+    data object QuickAi : Route
+    data object ServerSwitch : Route
+    data object Bills : Route
+}
+
+/* ================= 登录态闸门 ================= */
+
+@Composable
+fun RootGate() {
+    val state = AppGraph.state
+
+    Box(Modifier.fillMaxSize()) {
+        when {
+            !state.loaded -> Box(Modifier.fillMaxSize().background(Yellow))
+            state.server == null -> ServerScreen()
+            state.account() == null -> LoginScreen()
+            else -> MainShell()
+        }
+
+        // 全局轻提示
+        var shown by remember { mutableStateOf<String?>(null) }
+        LaunchedEffect(state.notice) {
+            shown = state.notice
+            if (shown != null) delay(2000)
+            shown = null
+        }
+        if (shown != null) {
+            Box(
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 96.dp, start = 40.dp, end = 40.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xCC333333))
+                    .padding(horizontal = 18.dp, vertical = 10.dp)
+            ) {
+                Text(shown!!, color = Color.White, fontSize = 13.sp)
+            }
+        }
+    }
+}
+
+/* ================= 主壳 ================= */
+
+private data class TabItem(
+    val label: String,
+    val icon: ImageVector? = null,
+    val isCenter: Boolean = false
+)
+
+private val tabs = listOf(
+    TabItem("首页", Icons.Filled.Home),
+    TabItem("统计", Icons.Filled.PieChart),
+    TabItem("记一笔", isCenter = true),
+    TabItem("AI记账", Icons.Filled.AutoAwesome),
+    TabItem("更多", Icons.Filled.Apps)
+)
+
+@Composable
+fun MainShell() {
+    var tab by remember { mutableIntStateOf(0) }
+    var subStack by remember { mutableStateOf(listOf<Route>()) }
+
+    val push: (Route) -> Unit = { subStack = subStack + it }
+    val pop: () -> Unit = { if (subStack.isNotEmpty()) subStack = subStack.dropLast(1) }
+
+    Column(Modifier.fillMaxSize()) {
+        Box(Modifier.weight(1f).fillMaxWidth()) {
+            when (tab) {
+                0 -> HomeScreen()
+                1 -> StatsScreen()
+                2 -> RecordScreen()
+                3 -> AiScreen()
+                else -> MoreScreen(onOpen = push)
+            }
+            subStack.lastOrNull()?.let { route ->
+                SubRoute(route = route, onBack = pop, push = push)
+            }
+        }
+        BottomBar(tab = tab, onSelect = { tab = it })
+    }
+}
+
+@Composable
+private fun SubRoute(route: Route, onBack: () -> Unit, push: (Route) -> Unit) {
+    when (route) {
+        Route.Books -> BooksScreen(onBack)
+        Route.Categories -> CategoriesScreen(onBack)
+        Route.Budgets -> BudgetsScreen(onBack)
+        Route.Recurring -> RecurringScreen(onBack)
+        Route.Savings -> SavingsScreen(onBack)
+        Route.Wallets -> WalletsScreen(onBack, push)
+        is Route.WalletDetail -> WalletDetailScreen(route.id, route.name, onBack)
+        Route.Presets -> PresetsScreen(onBack)
+        Route.AdminUsers -> AdminUsersScreen(onBack)
+        Route.AiSettings -> AiSettingsScreen(onBack)
+        Route.Trash -> TrashScreen(onBack)
+        Route.OpLogs -> OpLogsScreen(onBack)
+        Route.Account -> AccountScreen(onBack)
+        Route.About -> AboutScreen(onBack)
+        Route.QuickAi -> QuickAiScreen(onBack)
+        Route.ServerSwitch -> ServerSwitchScreen(onBack)
+        Route.Bills -> BillsScreen(onBack)
+    }
+}
+
+@Composable
+private fun BottomBar(tab: Int, onSelect: (Int) -> Unit) {
+    Surface(color = CardWhite, shadowElevation = 12.dp) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .height(62.dp)
+                .padding(top = 6.dp),
+            horizontalArrangement = Arrangement.SpaceAround,
+            verticalAlignment = Alignment.Top
+        ) {
+            tabs.forEachIndexed { i, item ->
+                if (item.isCenter) {
+                    // 中间凸起 +
+                    Box(
+                        Modifier
+                            .size(56.dp)
+                            .offset(y = (-14).dp)
+                            .clip(CircleShape)
+                            .background(Yellow)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) { onSelect(i) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Filled.Add,
+                            contentDescription = "记一笔",
+                            tint = TextMain,
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+                } else {
+                    val selected = tab == i
+                    Column(
+                        Modifier
+                            .padding(horizontal = 8.dp)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) { onSelect(i) },
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            item.icon!!,
+                            contentDescription = item.label,
+                            tint = if (selected) YellowDark else Color(0xFFB5B8BF),
+                            modifier = Modifier.size(25.dp)
+                        )
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            item.label,
+                            fontSize = 11.sp,
+                            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                            color = if (selected) YellowDark else TextSub
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
