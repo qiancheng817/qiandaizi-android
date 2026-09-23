@@ -349,6 +349,8 @@ data class AiModelsDto(val models: List<AiModelDto> = emptyList(), val enabled: 
 
 @Serializable
 data class BillRowDto(
+    val month: String? = null,
+    val label: String = "",
     val ym: String? = null,
     val year: Int? = null,
     val income: Double = 0.0,

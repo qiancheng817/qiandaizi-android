@@ -79,6 +79,7 @@ import kotlinx.coroutines.delay
 
 sealed interface Route {
     data object Books : Route
+    data object SwitchBook : Route
     data object Categories : Route
     data object Budgets : Route
     data object Recurring : Route
@@ -167,7 +168,10 @@ fun MainShell() {
             when (tab) {
                 0 -> HomeScreen()
                 1 -> StatsScreen()
-                2 -> RecordScreen()
+                2 -> RecordScreen(
+                    onBack = { tab = 0 },
+                    onOpenSettings = { push(Route.Categories) }
+                )
                 3 -> AiScreen()
                 else -> MoreScreen(onOpen = push)
             }
@@ -219,6 +223,7 @@ private fun EnsureBookGate() {
 private fun SubRoute(route: Route, onBack: () -> Unit, push: (Route) -> Unit) {
     when (route) {
         Route.Books -> BooksScreen(onBack)
+        Route.SwitchBook -> SwitchBookScreen(onBack)
         Route.Categories -> CategoriesScreen(onBack)
         Route.Budgets -> BudgetsScreen(onBack)
         Route.Recurring -> RecurringScreen(onBack)

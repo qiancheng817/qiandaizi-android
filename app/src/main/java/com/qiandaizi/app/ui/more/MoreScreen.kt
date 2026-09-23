@@ -97,6 +97,7 @@ fun MoreScreen(onOpen: (Route) -> Unit) {
                     val isAdmin = me?.role == "admin"
                     val common = buildList {
                         add("📒" to ("账本管理" to Route.Books))
+                        add("📚" to ("切换账本" to Route.SwitchBook))
                         add("📊" to ("预算管理" to Route.Budgets))
                         add("🏷" to ("类目管理" to Route.Categories))
                         add("⏰" to ("定时记账" to Route.Recurring))

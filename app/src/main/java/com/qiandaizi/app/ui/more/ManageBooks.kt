@@ -331,3 +331,84 @@ fun BooksScreen(onBack: () -> Unit) {
         )
     }
 }
+
+/* ================= 切换账本 ================= */
+
+@Composable
+fun SwitchBookScreen(onBack: () -> Unit) {
+    val appState = AppGraph.state
+    val scope = rememberCoroutineScope()
+
+    var books by remember { mutableStateOf<List<BookDto>>(emptyList()) }
+    var loaded by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        runCatching { appState.api().books() }
+            .onSuccess {
+                books = it
+                loaded = true
+            }
+            .onFailure {
+                loaded = true
+                appState.notify(explainError(it))
+            }
+    }
+
+    SubPageScaffold(title = "切换账本", onBack = onBack) {
+        Column(
+            Modifier
+                .verticalScroll(rememberScrollState())
+                .padding(14.dp)
+        ) {
+            WhiteCard {
+                Text("选择后首页立即显示该账本数据", fontSize = 12.sp, color = TextSub)
+                Spacer(Modifier.height(8.dp))
+
+                val current = appState.bookId()
+                if (loaded && books.isEmpty()) {
+                    Text("还没有账本", fontSize = 13.sp, color = TextSub,
+                        modifier = Modifier.padding(vertical = 12.dp))
+                }
+                books.forEach { b ->
+                    val selected = b.id == current
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(if (selected) Color(0xFFFFF8E1) else Color.Transparent)
+                            .clickable {
+                                scope.launch {
+                                    runCatching { appState.switchBook(b.id) }
+                                        .onSuccess {
+                                            appState.notify("已切换到「${b.name}」")
+                                            onBack()
+                                        }
+                                        .onFailure { appState.notify(explainError(it)) }
+                                }
+                            }
+                            .padding(vertical = 12.dp, horizontal = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            b.name,
+                            fontSize = 15.sp,
+                            color = if (selected) com.qiandaizi.app.core.YellowDark else TextMain,
+                            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Pill(
+                            "${b.flows} 笔",
+                            Color(0xFFF2F3F5),
+                            TextSub
+                        )
+                        if (selected) {
+                            Spacer(Modifier.size(8.dp))
+                            Text("✓", color = com.qiandaizi.app.core.YellowDark,
+                                fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

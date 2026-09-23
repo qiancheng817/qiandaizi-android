@@ -337,7 +337,11 @@ fun BillsScreen(onBack: () -> Unit) {
     }
 
     SubPageScaffold(title = "月度账单", onBack = onBack) {
-        Column(Modifier.padding(14.dp)) {
+        Column(
+            Modifier
+                .verticalScroll(rememberScrollState())
+                .padding(14.dp)
+        ) {
             Row(
                 Modifier
                     .fillMaxWidth()
@@ -381,16 +385,20 @@ fun BillsScreen(onBack: () -> Unit) {
                         modifier = Modifier.padding(vertical = 12.dp))
                 }
                 rows.forEach { r ->
+                    val monthLabel = r.label.ifBlank {
+                        r.month?.let { m -> "${m.substring(5).trimStart('0')}月" } ?: "-月"
+                    }
+                    val detailKey = r.month ?: r.ym
                     Row(
                         Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(10.dp))
-                            .clickable { detailYm = r.ym }
+                            .clickable { detailYm = detailKey }
                             .padding(vertical = 10.dp, horizontal = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            "${r.ym?.substring(5)?.trimStart('0') ?: "-"}月",
+                            monthLabel,
                             fontSize = 14.sp, color = TextMain,
                             fontWeight = FontWeight.Medium,
                             modifier = Modifier.width(46.dp))
