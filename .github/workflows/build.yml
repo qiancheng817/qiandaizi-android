@@ -42,24 +42,24 @@ jobs:
         run: ./gradlew assembleRelease --stacktrace
 
       - name: Rename APK
-        run: cp app/build/outputs/apk/release/app-release.apk Qiandaizi-v1.5.0.apk
+        run: cp app/build/outputs/apk/release/app-release.apk Qiandaizi-v1.6.0.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: 钱袋子-APK
-          path: Qiandaizi-v1.5.0.apk
+          path: Qiandaizi-v1.6.0.apk
           retention-days: 30
 
       - name: Publish Release
         if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.5.0' }}
-          name: 钱袋子 Android v1.5.0
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.6.0' }}
+          name: 钱袋子 Android v1.6.0
           body: |
             钱袋子原生 Android 客户端（纯 Kotlin + Jetpack Compose，非套壳浏览器）。
-            正式签名安装包，下载下方 `Qiandaizi-v1.5.0.apk` 安装即可（安卓 8.0 及以上）。
-          files: Qiandaizi-v1.5.0.apk
+            正式签名安装包，下载下方 `Qiandaizi-v1.6.0.apk` 安装即可（安卓 8.0 及以上）。
+          files: Qiandaizi-v1.6.0.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

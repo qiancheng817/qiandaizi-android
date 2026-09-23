@@ -89,6 +89,15 @@ data class NameValueDto(
 )
 
 @Serializable
+data class MemberSummaryDto(
+    val name: String = "",
+    val color: String? = null,
+    val income: Double = 0.0,
+    val expense: Double = 0.0,
+    val balance: Double = 0.0
+)
+
+@Serializable
 data class DailyDto(
     val date: String = "",
     val expense: Double = 0.0,

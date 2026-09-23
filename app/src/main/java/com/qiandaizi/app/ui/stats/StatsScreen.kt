@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -37,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.qiandaizi.app.core.AppGraph
 import com.qiandaizi.app.core.MoneyBagsDto
+import com.qiandaizi.app.core.MemberSummaryDto
 import com.qiandaizi.app.core.TextMain
 import com.qiandaizi.app.core.TextSub
 import com.qiandaizi.app.core.addMonth
@@ -86,6 +88,7 @@ fun StatsScreen() {
     var attribution by remember { mutableStateOf<List<com.qiandaizi.app.core.NameValueDto>>(emptyList()) }
     var daily by remember { mutableStateOf<List<com.qiandaizi.app.core.DailyDto>>(emptyList()) }
     var monthly by remember { mutableStateOf<List<com.qiandaizi.app.core.MonthlyDto>>(emptyList()) }
+    var memberSummary by remember { mutableStateOf<List<MemberSummaryDto>>(emptyList()) }
     var errorMsg by remember { mutableStateOf<String?>(null) }
 
     val type = if (typeIndex == 1) "income" else "expense"
@@ -112,13 +115,15 @@ fun StatsScreen() {
             val attr = api.statAttribution(type, period.first, period.second)
             val day = api.statDaily(period.first, period.second)
             val mon = api.statMonthly(barYear)
-            StatsBundle(ov, cat, attr, day, mon)
+            val ms = api.memberSummary(period.first, period.second)
+            StatsBundle(ov, cat, attr, day, mon, ms)
         }.onSuccess { b ->
             overview = b.ov
             category = b.cat
             attribution = b.attr
             daily = b.day
             monthly = b.mon
+            memberSummary = b.ms
         }.onFailure { errorMsg = explainError(it) }
     }
 
@@ -226,6 +231,99 @@ fun StatsScreen() {
                                 fontWeight = FontWeight.Bold,
                                 color = TextMain
                             )
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(14.dp))
+
+                // 每位成员收支汇总
+                val periodLabel = when (rangeIndex) {
+                    1 -> "$selYear 年"
+                    2 -> "所选时段"
+                    else -> monthCn(selMonth)
+                }
+                WhiteCard {
+                    Text(
+                        "$periodLabel · 每位成员",
+                        fontSize = 15.sp, fontWeight = FontWeight.Bold
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    if (memberSummary.isEmpty()) {
+                        Text("暂无成员数据", fontSize = 13.sp, color = TextSub)
+                    } else {
+                        // 表头
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("成员", fontSize = 12.sp, color = TextSub,
+                                modifier = Modifier.weight(1f))
+                            Text("收入", fontSize = 12.sp, color = TextSub,
+                                modifier = Modifier.weight(1f),
+                                textAlign = androidx.compose.ui.text.style.TextAlign.End)
+                            Text("支出", fontSize = 12.sp, color = TextSub,
+                                modifier = Modifier.weight(1f),
+                                textAlign = androidx.compose.ui.text.style.TextAlign.End)
+                            Text("结余", fontSize = 12.sp, color = TextSub,
+                                modifier = Modifier.weight(1f),
+                                textAlign = androidx.compose.ui.text.style.TextAlign.End)
+                        }
+                        Spacer(Modifier.height(6.dp))
+                        memberSummary.forEach { m ->
+                            Row(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    Modifier.weight(1f),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
+                                        Modifier
+                                            .size(10.dp)
+                                            .clip(CircleShape)
+                                            .background(
+                                                parseHex(m.color) ?: Color(0xFFB8BCC4)
+                                            )
+                                    )
+                                    Spacer(Modifier.size(8.dp))
+                                    Text(
+                                        m.name.ifEmpty { "未标注" },
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = TextMain,
+                                        maxLines = 1,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                    )
+                                }
+                                Text(
+                                    money(m.income),
+                                    fontSize = 13.sp,
+                                    color = com.qiandaizi.app.core.IncomeGreen,
+                                    modifier = Modifier.weight(1f),
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.End
+                                )
+                                Text(
+                                    money(m.expense),
+                                    fontSize = 13.sp,
+                                    color = com.qiandaizi.app.core.ExpenseRed,
+                                    modifier = Modifier.weight(1f),
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.End
+                                )
+                                Text(
+                                    money(m.balance),
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (m.balance >= 0)
+                                        com.qiandaizi.app.core.IncomeGreen
+                                    else com.qiandaizi.app.core.ExpenseRed,
+                                    modifier = Modifier.weight(1f),
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.End
+                                )
+                            }
                         }
                     }
                 }
@@ -490,5 +588,6 @@ private data class StatsBundle(
     val cat: List<com.qiandaizi.app.core.NameValueDto>,
     val attr: List<com.qiandaizi.app.core.NameValueDto>,
     val day: List<com.qiandaizi.app.core.DailyDto>,
-    val mon: List<com.qiandaizi.app.core.MonthlyDto>
+    val mon: List<com.qiandaizi.app.core.MonthlyDto>,
+    val ms: List<MemberSummaryDto>
 )

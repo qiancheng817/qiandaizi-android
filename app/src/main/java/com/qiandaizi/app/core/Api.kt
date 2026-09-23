@@ -129,6 +129,12 @@ interface Api {
         @Query("end") end: String? = null
     ): List<NameValueDto>
 
+    @GET("stats/member-summary")
+    suspend fun memberSummary(
+        @Query("start") start: String? = null,
+        @Query("end") end: String? = null
+    ): List<MemberSummaryDto>
+
     @GET("stats/daily")
     suspend fun statDaily(
         @Query("start") start: String? = null,
