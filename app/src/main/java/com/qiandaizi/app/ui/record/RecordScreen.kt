@@ -136,17 +136,19 @@ fun RecordScreen(
             .fillMaxSize()
             .background(Color(0xFFF6F7F9))
     ) {
-        // ============ 顶部栏：返回 / 支出·收入 / 设置 ============
-        Row(
+        // ============ 顶部栏：返回 | 支出·收入（居中） | 折叠·设置 ============
+        Box(
             Modifier
                 .fillMaxWidth()
                 .statusBarsPadding()
-                .padding(horizontal = 14.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .height(52.dp)
+                .padding(horizontal = 12.dp)
         ) {
+            // 返回（左）
             Box(
                 Modifier
-                    .size(40.dp)
+                    .align(Alignment.CenterStart)
+                    .size(36.dp)
                     .clip(CircleShape)
                     .background(Color.White)
                     .clickable { onBack() },
@@ -156,60 +158,67 @@ fun RecordScreen(
                     Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "返回",
                     tint = TextMain,
-                    modifier = Modifier.size(22.dp)
+                    modifier = Modifier.size(20.dp)
                 )
             }
 
-            Spacer(Modifier.weight(1f))
-            TypeTab("支出", selected = form.type == "expense") {
-                form.type = "expense"
-                // 切换类型后校验分类
-                if (categories.none { it.name == form.category && it.type == "expense" }) {
-                    form.category = categories.firstOrNull { it.type == "expense" }?.name ?: ""
+            // 支出 / 收入（绝对居中，不受左右按钮数量影响）
+            Row(
+                Modifier.align(Alignment.Center),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TypeTab("支出", selected = form.type == "expense") {
+                    form.type = "expense"
+                    if (categories.none { it.name == form.category && it.type == "expense" }) {
+                        form.category = categories.firstOrNull { it.type == "expense" }?.name ?: ""
+                    }
+                }
+                Spacer(Modifier.size(34.dp))
+                TypeTab("收入", selected = form.type == "income") {
+                    form.type = "income"
+                    if (categories.none { it.name == form.category && it.type == "income" }) {
+                        form.category = categories.firstOrNull { it.type == "income" }?.name ?: ""
+                    }
                 }
             }
-            Spacer(Modifier.size(22.dp))
-            TypeTab("收入", selected = form.type == "income") {
-                form.type = "income"
-                if (categories.none { it.name == form.category && it.type == "income" }) {
-                    form.category = categories.firstOrNull { it.type == "income" }?.name ?: ""
+
+            // 折叠 + 设置（右，统一样式与大小）
+            Row(
+                Modifier.align(Alignment.CenterEnd),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    Modifier
+                        .size(34.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFEDEEF0))
+                        .clickable { panelCollapsed = !panelCollapsed },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        if (panelCollapsed) Icons.Filled.KeyboardArrowUp
+                        else Icons.Filled.KeyboardArrowDown,
+                        contentDescription = if (panelCollapsed) "展开面板" else "折叠面板",
+                        tint = Color(0xFF555555),
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
-            }
-            Spacer(Modifier.weight(1f))
-
-            // 折叠/展开底部面板：折叠后展示更多分类
-            Box(
-                Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(Color.White)
-                    .clickable { panelCollapsed = !panelCollapsed },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    if (panelCollapsed) Icons.Filled.KeyboardArrowUp
-                    else Icons.Filled.KeyboardArrowDown,
-                    contentDescription = if (panelCollapsed) "展开面板" else "折叠面板",
-                    tint = Color(0xFF555555),
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-            Spacer(Modifier.size(8.dp))
-
-            // 设置 → 类目管理
-            Box(
-                Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .clickable { onOpenSettings() },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    Icons.Filled.Settings,
-                    contentDescription = "类目管理",
-                    tint = Color(0xFF555555),
-                    modifier = Modifier.size(24.dp)
-                )
+                Spacer(Modifier.size(8.dp))
+                Box(
+                    Modifier
+                        .size(34.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFEDEEF0))
+                        .clickable { onOpenSettings() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Filled.Settings,
+                        contentDescription = "类目管理",
+                        tint = Color(0xFF555555),
+                        modifier = Modifier.size(19.dp)
+                    )
+                }
             }
         }
 
