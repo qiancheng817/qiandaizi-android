@@ -106,6 +106,8 @@ fun AiScreen() {
     var imgDataUrl by remember { mutableStateOf<String?>(null) }
     var imgText by remember { mutableStateOf("") }
     var imgParsing by remember { mutableStateOf(false) }
+    // 图片识别结果独立展示在「图片记账」卡片内，不与上方一句话记账共用
+    var imgResult by remember { mutableStateOf<AiParseDto?>(null) }
 
     androidx.compose.runtime.LaunchedEffect(Unit) {
         runCatching { appState.api().aiStatus() }.onSuccess { status = it }
@@ -131,7 +133,8 @@ fun AiScreen() {
     }
 
     // 拍照识别：TakePicture 契约 + FileProvider（App 未声明 CAMERA 权限，无需运行时申请）
-    var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
+    // 注意用 rememberSaveable：相机打开期间进程可能被回收/旋转，remember 会丢 uri 导致拍完没反应
+    var pendingCameraUri by rememberSaveable { mutableStateOf<Uri?>(null) }
     val takePicture = rememberLauncherForActivityResult(
         ActivityResultContracts.TakePicture()
     ) { ok ->
@@ -162,6 +165,45 @@ fun AiScreen() {
             pendingCameraUri = uri
             takePicture.launch(uri)
         }.onFailure { appState.notify("无法启动相机：${it.message ?: "未知错误"}") }
+    }
+
+    // 识别结果确认入账：一句话 / 图片两条路径共用
+    fun confirmParse(r: AiParseDto, clear: () -> Unit) {
+        val amount = r.amount ?: 0.0
+        if (amount <= 0) {
+            appState.notify("金额无效，无法记账")
+            return
+        }
+        saving = true
+        scope.launch {
+            runCatching {
+                appState.api().createFlow(
+                    FlowReq(
+                        type = r.type ?: "expense",
+                        amount = amount,
+                        category = r.category ?: "其他",
+                        paymentMethod = r.paymentMethod?.ifBlank { null },
+                        description = (r.description?.ifBlank { null }) ?: r.category,
+                        flowTime = today(),
+                        source = "ai"
+                    )
+                )
+            }.onSuccess { idResp ->
+                created = FlowDto(
+                    id = idResp.id,
+                    type = r.type ?: "expense",
+                    amount = amount,
+                    category = r.category ?: "其他",
+                    paymentMethod = r.paymentMethod ?: "",
+                    description = r.description ?: "",
+                    flowTime = today()
+                )
+                clear()
+                appState.bump()
+                appState.notify("记账成功")
+            }.onFailure { appState.notify(explainError(it)) }
+            saving = false
+        }
     }
 
     Column(
@@ -266,100 +308,12 @@ fun AiScreen() {
 
                 // 识别结果
                 result?.let { r ->
-                    Spacer(Modifier.height(14.dp))
-                    Column(
-                        Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(Color(0xFFF8F9FB))
-                            .padding(14.dp)
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            val isExpense = r.type != "income"
-                            Pill(
-                                if (isExpense) "支出" else "收入",
-                                if (isExpense) com.qiandaizi.app.core.ExpenseRed
-                                else com.qiandaizi.app.core.IncomeGreen
-                            )
-                            Spacer(Modifier.size(8.dp))
-                            Text(
-                                money(r.amount),
-                                fontSize = 19.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = if (isExpense) com.qiandaizi.app.core.ExpenseRed
-                                else com.qiandaizi.app.core.IncomeGreen
-                            )
-                            Spacer(Modifier.size(8.dp))
-                            r.category?.let { Pill(it, Color(0xFFE9EBF0), TextMain) }
-                            Spacer(Modifier.size(6.dp))
-                            r.paymentMethod?.takeIf { it.isNotBlank() }?.let {
-                                Pill(it, Color(0xFFE9EBF0), TextMain)
-                            }
-                        }
-                        if (!r.description.isNullOrBlank()) {
-                            Spacer(Modifier.height(8.dp))
-                            Text("名称：${r.description}", fontSize = 13.sp, color = TextSub)
-                        }
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            "来源：${if (r.source == "ai") "AI模型" else "本地规则"}",
-                            fontSize = 11.sp, color = TextSub
-                        )
-                        Spacer(Modifier.height(10.dp))
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                            GhostButton("取消", onClick = { result = null })
-                            Spacer(Modifier.size(10.dp))
-                            Button(
-                                onClick = {
-                                    val amount = r.amount ?: 0.0
-                                    if (amount <= 0) {
-                                        appState.notify("金额无效，无法记账")
-                                        return@Button
-                                    }
-                                    saving = true
-                                    scope.launch {
-                                        runCatching {
-                                            appState.api().createFlow(
-                                                FlowReq(
-                                                    type = r.type ?: "expense",
-                                                    amount = amount,
-                                                    category = r.category ?: "其他",
-                                                    paymentMethod = r.paymentMethod?.ifBlank { null },
-                                                    description = (r.description?.ifBlank { null })
-                                                        ?: r.category,
-                                                    flowTime = today(),
-                                                    source = "ai"
-                                                )
-                                            )
-                                        }.onSuccess { idResp ->
-                                            created = FlowDto(
-                                                id = idResp.id,
-                                                type = r.type ?: "expense",
-                                                amount = amount,
-                                                category = r.category ?: "其他",
-                                                paymentMethod = r.paymentMethod ?: "",
-                                                description = r.description ?: "",
-                                                flowTime = today()
-                                            )
-                                            result = null
-                                            text = ""
-                                            appState.bump()
-                                            appState.notify("记账成功")
-                                        }.onFailure { appState.notify(explainError(it)) }
-                                        saving = false
-                                    }
-                                },
-                                enabled = !saving,
-                                shape = RoundedCornerShape(20.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = com.qiandaizi.app.core.Yellow
-                                )
-                            ) {
-                                Text("确认并记账", color = TextMain, fontSize = 13.sp,
-                                    fontWeight = FontWeight.SemiBold)
-                            }
-                        }
-                    }
+                    ParseResultCard(
+                        r = r,
+                        saving = saving,
+                        onCancel = { result = null },
+                        onConfirm = { confirmParse(r) { result = null; text = "" } }
+                    )
                 }
 
                 // 已记账结果
@@ -585,7 +539,7 @@ fun AiScreen() {
                                     return@Button
                                 }
                                 imgParsing = true
-                                result = null
+                                imgResult = null
                                 scope.launch {
                                     runCatching {
                                         appState.api().aiParseImage(
@@ -595,7 +549,7 @@ fun AiScreen() {
                                             )
                                         )
                                     }.onSuccess {
-                                        result = it
+                                        imgResult = it
                                         imgDataUrl = null
                                         imgText = ""
                                     }.onFailure { appState.notify(explainError(it)) }
@@ -613,6 +567,16 @@ fun AiScreen() {
                             color = TextMain, fontSize = 13.sp)
                         }
                     }
+
+                // 图片识别结果（展示在本卡片内）
+                imgResult?.let { r ->
+                    ParseResultCard(
+                        r = r,
+                        saving = saving,
+                        onCancel = { imgResult = null },
+                        onConfirm = { confirmParse(r) { imgResult = null } }
+                    )
+                }
                 }
             Spacer(Modifier.height(20.dp))
         }
@@ -637,5 +601,71 @@ private fun AnalysisCell(label: String, value: String, color: Color, modifier: M
         Text(label, fontSize = 12.sp, color = TextSub)
         Text(value, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = color,
             modifier = Modifier.padding(top = 4.dp))
+    }
+}
+
+// 识别结果卡片：一句话记账 / 图片记账共用
+@Composable
+private fun ParseResultCard(
+    r: AiParseDto,
+    saving: Boolean,
+    onCancel: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    Spacer(Modifier.height(14.dp))
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color(0xFFF8F9FB))
+            .padding(14.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            val isExpense = r.type != "income"
+            Pill(
+                if (isExpense) "支出" else "收入",
+                if (isExpense) com.qiandaizi.app.core.ExpenseRed
+                else com.qiandaizi.app.core.IncomeGreen
+            )
+            Spacer(Modifier.size(8.dp))
+            Text(
+                money(r.amount),
+                fontSize = 19.sp,
+                fontWeight = FontWeight.Bold,
+                color = if (isExpense) com.qiandaizi.app.core.ExpenseRed
+                else com.qiandaizi.app.core.IncomeGreen
+            )
+            Spacer(Modifier.size(8.dp))
+            r.category?.let { Pill(it, Color(0xFFE9EBF0), TextMain) }
+            Spacer(Modifier.size(6.dp))
+            r.paymentMethod?.takeIf { it.isNotBlank() }?.let {
+                Pill(it, Color(0xFFE9EBF0), TextMain)
+            }
+        }
+        if (!r.description.isNullOrBlank()) {
+            Spacer(Modifier.height(8.dp))
+            Text("名称：${r.description}", fontSize = 13.sp, color = TextSub)
+        }
+        Spacer(Modifier.height(4.dp))
+        Text(
+            "来源：${if (r.source == "ai") "AI模型" else "本地规则"}",
+            fontSize = 11.sp, color = TextSub
+        )
+        Spacer(Modifier.height(10.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            GhostButton("取消", onClick = onCancel)
+            Spacer(Modifier.size(10.dp))
+            Button(
+                onClick = onConfirm,
+                enabled = !saving,
+                shape = RoundedCornerShape(20.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = com.qiandaizi.app.core.Yellow
+                )
+            ) {
+                Text("确认并记账", color = TextMain, fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold)
+            }
+        }
     }
 }
