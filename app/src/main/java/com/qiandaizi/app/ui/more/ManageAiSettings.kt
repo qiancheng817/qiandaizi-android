@@ -45,6 +45,7 @@ import com.qiandaizi.app.core.AiModelsPutReq
 import com.qiandaizi.app.core.AppGraph
 import com.qiandaizi.app.core.BaiduOcrDto
 import com.qiandaizi.app.core.BaiduOcrPutReq
+import com.qiandaizi.app.core.ExpenseRed
 import com.qiandaizi.app.core.TextMain
 import com.qiandaizi.app.core.TextSub
 import com.qiandaizi.app.core.explainError
@@ -182,6 +183,27 @@ fun AiSettingsScreen(onBack: () -> Unit) {
                 InfoLine("状态", if (baidu?.enabled == true) "已启用 ✓" else "未启用")
                 InfoLine("API Key", if (!baidu?.apiKey.isNullOrBlank()) "已配置 ✓" else "未配置")
                 InfoLine("Secret Key", if (baidu?.hasSecret == true) "已配置 ✓" else "未配置")
+                // 默认类型 + 各接口本月用量
+                val types = baidu?.types ?: emptyList()
+                if (types.isNotEmpty()) {
+                    val defName = types.find { it.id == baidu?.type }?.name ?: "标准版"
+                    InfoLine("默认类型", "$defName（耗尽自动换下一个）")
+                    Spacer(Modifier.height(4.dp))
+                    types.forEach { t ->
+                        Row(
+                            Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(t.name, fontSize = 12.sp, color = TextSub,
+                                modifier = Modifier.weight(1f))
+                            Text(
+                                "本月已用 ${t.used} 次" + if (t.exhausted) " · 已耗尽" else "",
+                                fontSize = 12.sp,
+                                color = if (t.exhausted) ExpenseRed else TextSub
+                            )
+                        }
+                    }
+                }
             }
         }
     }
@@ -237,11 +259,13 @@ fun AiSettingsScreen(onBack: () -> Unit) {
     if (showBaiduEdit) {
         BaiduOcrEditDialog(
             onDismiss = { showBaiduEdit = false }
-        ) { apiKey, secretKey ->
+        ) { apiKey, secretKey, type ->
             showBaiduEdit = false
             scope.launch {
                 runCatching {
-                    appState.api().saveBaiduOcr(BaiduOcrPutReq(apiKey = apiKey, secretKey = secretKey))
+                    appState.api().saveBaiduOcr(
+                        BaiduOcrPutReq(apiKey = apiKey, secretKey = secretKey, type = type)
+                    )
                 }.onSuccess {
                     appState.notify("百度 OCR 设置已保存")
                     load()
@@ -254,10 +278,18 @@ fun AiSettingsScreen(onBack: () -> Unit) {
 @Composable
 private fun BaiduOcrEditDialog(
     onDismiss: () -> Unit,
-    onConfirm: (apiKey: String, secretKey: String) -> Unit
+    onConfirm: (apiKey: String, secretKey: String, type: String) -> Unit
 ) {
     var apiKey by remember { mutableStateOf("") }
     var secretKey by remember { mutableStateOf("") }
+    var type by remember { mutableStateOf("") }
+    val typeOptions = listOf(
+        "" to "标准版（默认）",
+        "accurate_basic" to "高精度版",
+        "webimage" to "网络图片",
+        "general" to "标准含位置",
+        "handwriting" to "手写识别"
+    )
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -274,6 +306,26 @@ private fun BaiduOcrEditDialog(
                     modifier = Modifier.padding(bottom = 8.dp))
                 DialogInput("API Key", apiKey) { apiKey = it }
                 DialogInput("Secret Key", secretKey) { secretKey = it }
+                Spacer(Modifier.height(8.dp))
+                Text("默认识别类型（某接口免费额度耗尽后会自动切换下一个）",
+                    fontSize = 12.sp, color = TextSub)
+                typeOptions.forEach { (id, label) ->
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .clickable { type = id }
+                            .padding(vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            if (type == id) "●" else "○",
+                            fontSize = 14.sp,
+                            color = if (type == id) com.qiandaizi.app.core.YellowDark else TextSub
+                        )
+                        Spacer(Modifier.size(8.dp))
+                        Text(label, fontSize = 13.sp, color = TextMain)
+                    }
+                }
             }
         },
         confirmButton = {
@@ -285,7 +337,7 @@ private fun BaiduOcrEditDialog(
                             AppGraph.state.notify("请填写 API Key 和 Secret Key")
                             return@clickable
                         }
-                        onConfirm(apiKey.trim(), secretKey.trim())
+                        onConfirm(apiKey.trim(), secretKey.trim(), type)
                     }
                     .padding(8.dp))
         },

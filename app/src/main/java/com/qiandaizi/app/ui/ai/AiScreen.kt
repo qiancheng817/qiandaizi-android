@@ -106,6 +106,7 @@ fun AiScreen() {
     var imgDataUrl by remember { mutableStateOf<String?>(null) }
     var imgText by remember { mutableStateOf("") }
     var imgParsing by remember { mutableStateOf(false) }
+    var imgOcrType by remember { mutableStateOf("") }
     // 图片识别结果独立展示在「图片记账」卡片内，不与上方一句话记账共用
     var imgResult by remember { mutableStateOf<AiParseDto?>(null) }
 
@@ -466,6 +467,40 @@ fun AiScreen() {
                     fontSize = 12.sp, color = TextSub)
                 Spacer(Modifier.height(12.dp))
 
+                // OCR 类型选择（自动 = 走后端降级链）
+                val ocrTypeOptions = listOf(
+                    "" to "自动",
+                    "general_basic" to "标准",
+                    "accurate_basic" to "高精度",
+                    "webimage" to "网络图",
+                    "general" to "含位置",
+                    "handwriting" to "手写"
+                )
+                androidx.compose.foundation.layout.FlowRow(
+                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
+                    verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)
+                ) {
+                    ocrTypeOptions.forEach { (id, label) ->
+                        val selected = imgOcrType == id
+                        Box(
+                            Modifier
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(
+                                    if (selected) com.qiandaizi.app.core.Yellow
+                                    else Color(0xFFF6F7F9)
+                                )
+                                .clickable { imgOcrType = id }
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Text(
+                                label, fontSize = 12.sp,
+                                color = if (selected) TextMain else TextSub
+                            )
+                        }
+                    }
+                }
+                Spacer(Modifier.height(10.dp))
+
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     // 相册选择
                     Box(
@@ -545,7 +580,8 @@ fun AiScreen() {
                                         appState.api().aiParseImage(
                                             com.qiandaizi.app.core.AiParseImageReq(
                                                 image = imgDataUrl,
-                                                text = imgText.ifBlank { null }
+                                                text = imgText.ifBlank { null },
+                                                ocrType = imgOcrType.ifBlank { null }
                                             )
                                         )
                                     }.onSuccess {
@@ -648,7 +684,11 @@ private fun ParseResultCard(
         }
         Spacer(Modifier.height(4.dp))
         Text(
-            "来源：${if (r.source == "ai") "AI模型" else "本地规则"}",
+            "来源：" + when (r.source) {
+                "ai" -> "AI模型"
+                "ocr" -> "百度OCR" + (r.ocrType?.let { "·$it" } ?: "")
+                else -> "本地规则"
+            },
             fontSize = 11.sp, color = TextSub
         )
         Spacer(Modifier.height(10.dp))
