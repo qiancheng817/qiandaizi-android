@@ -43,6 +43,8 @@ import com.qiandaizi.app.core.AiModelDto
 import com.qiandaizi.app.core.AiModelsDto
 import com.qiandaizi.app.core.AiModelsPutReq
 import com.qiandaizi.app.core.AppGraph
+import com.qiandaizi.app.core.BaiduOcrDto
+import com.qiandaizi.app.core.BaiduOcrPutReq
 import com.qiandaizi.app.core.TextMain
 import com.qiandaizi.app.core.TextSub
 import com.qiandaizi.app.core.explainError
@@ -61,6 +63,8 @@ fun AiSettingsScreen(onBack: () -> Unit) {
     var isAdmin by remember { mutableStateOf(false) }
     var editIndex by remember { mutableStateOf(-1) }
     var deleteIndex by remember { mutableStateOf(-1) }
+    var baidu by remember { mutableStateOf<BaiduOcrDto?>(null) }
+    var showBaiduEdit by remember { mutableStateOf(false) }
 
     fun load() {
         scope.launch {
@@ -71,6 +75,11 @@ fun AiSettingsScreen(onBack: () -> Unit) {
                     loaded = true
                 }
                 .onFailure { appState.notify(explainError(it)) }
+        }
+        scope.launch {
+            runCatching { appState.api().baiduOcrConfig() }
+                .onSuccess { baidu = it }
+                .onFailure { }
         }
     }
     LaunchedEffect(Unit) { load() }
@@ -147,6 +156,33 @@ fun AiSettingsScreen(onBack: () -> Unit) {
                 }
             }
             Spacer(Modifier.height(8.dp))
+
+            // 百度 OCR（图片识别，无需大模型）
+            WhiteCard(modifier = Modifier.padding(bottom = 12.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("百度 OCR 图片识别", fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold, color = TextMain,
+                        modifier = Modifier.weight(1f))
+                    if (isAdmin) {
+                        Icon(Icons.Filled.Edit, contentDescription = "编辑",
+                            tint = TextSub,
+                            modifier = Modifier
+                                .padding(start = 4.dp)
+                                .size(32.dp)
+                                .clip(CircleShape)
+                                .clickable { showBaiduEdit = true }
+                                .padding(6.dp))
+                    }
+                }
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    "在百度智能云「应用管理」创建应用（勾选文字识别），填入 API Key 和 Secret Key 即可。配置后拍照 / 图片记账自动走百度 OCR + 本地规则，无需 AI 大模型。",
+                    fontSize = 11.sp, color = TextSub,
+                    modifier = Modifier.padding(bottom = 6.dp))
+                InfoLine("状态", if (baidu?.enabled == true) "已启用 ✓" else "未启用")
+                InfoLine("API Key", if (!baidu?.apiKey.isNullOrBlank()) "已配置 ✓" else "未配置")
+                InfoLine("Secret Key", if (baidu?.hasSecret == true) "已配置 ✓" else "未配置")
+            }
         }
     }
 
@@ -197,6 +233,69 @@ fun AiSettingsScreen(onBack: () -> Unit) {
             onDismiss = { deleteIndex = -1 }
         )
     }
+
+    if (showBaiduEdit) {
+        BaiduOcrEditDialog(
+            onDismiss = { showBaiduEdit = false }
+        ) { apiKey, secretKey ->
+            showBaiduEdit = false
+            scope.launch {
+                runCatching {
+                    appState.api().saveBaiduOcr(BaiduOcrPutReq(apiKey = apiKey, secretKey = secretKey))
+                }.onSuccess {
+                    appState.notify("百度 OCR 设置已保存")
+                    load()
+                }.onFailure { appState.notify(explainError(it)) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BaiduOcrEditDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (apiKey: String, secretKey: String) -> Unit
+) {
+    var apiKey by remember { mutableStateOf("") }
+    var secretKey by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("百度 OCR 配置", fontSize = 16.sp, fontWeight = FontWeight.Bold) },
+        text = {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+            ) {
+                Text(
+                    "百度智能云控制台 → 应用管理 → 创建应用（勾选「文字识别」），把应用详情里的 API Key 和 Secret Key 填入下方。",
+                    fontSize = 11.sp, color = TextSub,
+                    modifier = Modifier.padding(bottom = 8.dp))
+                DialogInput("API Key", apiKey) { apiKey = it }
+                DialogInput("Secret Key", secretKey) { secretKey = it }
+            }
+        },
+        confirmButton = {
+            Text("保存", fontSize = 14.sp, color = com.qiandaizi.app.core.YellowDark,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier
+                    .clickable {
+                        if (apiKey.isBlank() || secretKey.isBlank()) {
+                            AppGraph.state.notify("请填写 API Key 和 Secret Key")
+                            return@clickable
+                        }
+                        onConfirm(apiKey.trim(), secretKey.trim())
+                    }
+                    .padding(8.dp))
+        },
+        dismissButton = {
+            Text("取消", fontSize = 14.sp, color = TextSub,
+                modifier = Modifier
+                    .clickable { onDismiss() }
+                    .padding(8.dp))
+        }
+    )
 }
 
 @Composable

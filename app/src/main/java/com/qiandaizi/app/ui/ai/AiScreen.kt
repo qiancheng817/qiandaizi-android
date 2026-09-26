@@ -2,6 +2,7 @@ package com.qiandaizi.app.ui.ai
 
 import android.content.Context
 import android.graphics.BitmapFactory
+import android.net.Uri
 import android.util.Base64
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -28,6 +29,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -49,6 +51,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.FileProvider
 import com.qiandaizi.app.core.AiParseDto
 import com.qiandaizi.app.core.AiParseReq
 import com.qiandaizi.app.core.AiStatusDto
@@ -71,6 +74,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.jsonPrimitive
+import java.io.File
 
 private val examples = listOf("午饭 35", "打车回家28", "发工资12000", "超市购物156.5微信", "收到红包200")
 
@@ -124,6 +128,40 @@ fun AiScreen() {
                     .onFailure { appState.notify("读取图片失败") }
             }
         }
+    }
+
+    // 拍照识别：TakePicture 契约 + FileProvider（App 未声明 CAMERA 权限，无需运行时申请）
+    var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
+    val takePicture = rememberLauncherForActivityResult(
+        ActivityResultContracts.TakePicture()
+    ) { ok ->
+        val uri = pendingCameraUri
+        if (ok && uri != null) {
+            scope.launch {
+                runCatching {
+                    withContext(Dispatchers.IO) {
+                        val resolver = context.contentResolver
+                        val bytes = resolver.openInputStream(uri)!!.use { it.readBytes() }
+                        val mime = resolver.getType(uri) ?: "image/jpeg"
+                        "data:$mime;base64," +
+                            Base64.encodeToString(bytes, Base64.NO_WRAP)
+                    }
+                }.onSuccess { imgDataUrl = it }
+                    .onFailure { appState.notify("读取照片失败") }
+            }
+        }
+    }
+
+    fun launchCamera() {
+        runCatching {
+            val dir = File(context.cacheDir, "images").apply { mkdirs() }
+            val file = File(dir, "camera_${System.currentTimeMillis()}.jpg")
+            val uri = FileProvider.getUriForFile(
+                context, context.packageName + ".fileprovider", file
+            )
+            pendingCameraUri = uri
+            takePicture.launch(uri)
+        }.onFailure { appState.notify("无法启动相机：${it.message ?: "未知错误"}") }
     }
 
     Column(
@@ -470,11 +508,12 @@ fun AiScreen() {
                     Text("图片记账", fontSize = 15.sp, fontWeight = FontWeight.Bold)
                 }
                 Spacer(Modifier.height(4.dp))
-                Text("上传小票或账单截图，AI 自动识别金额、分类与名称",
+                Text("拍照 / 上传小票或账单截图，自动识别金额、分类与名称",
                     fontSize = 12.sp, color = TextSub)
                 Spacer(Modifier.height(12.dp))
 
-                Row {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    // 相册选择
                     Box(
                         Modifier
                             .size(120.dp)
@@ -507,21 +546,38 @@ fun AiScreen() {
                                 Icon(Icons.Filled.Image, contentDescription = null,
                                     tint = TextSub, modifier = Modifier.size(26.dp))
                                 Spacer(Modifier.height(6.dp))
-                                Text("选择图片", fontSize = 12.sp, color = TextSub)
+                                Text("相册选择", fontSize = 12.sp, color = TextSub)
                             }
                         }
                     }
-                    Spacer(Modifier.size(12.dp))
-                    Column(Modifier.weight(1f)) {
-                        OutlinedTextField(
-                            value = imgText,
-                            onValueChange = { imgText = it },
-                            modifier = Modifier.fillMaxWidth(),
-                            placeholder = { Text("补充说明（可选）", fontSize = 12.sp) },
-                            singleLine = true,
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                        Spacer(Modifier.height(8.dp))
+                    // 相机拍照
+                    Box(
+                        Modifier
+                            .size(120.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(Color(0xFFFCF4DC))
+                            .clickable { launchCamera() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(Icons.Filled.PhotoCamera, contentDescription = null,
+                                tint = Color(0xFF8A6D1B), modifier = Modifier.size(26.dp))
+                            Spacer(Modifier.height(6.dp))
+                            Text("拍照识别", fontSize = 12.sp, color = Color(0xFF8A6D1B))
+                        }
+                    }
+                }
+                Spacer(Modifier.height(10.dp))
+                Column(Modifier.fillMaxWidth()) {
+                    OutlinedTextField(
+                        value = imgText,
+                        onValueChange = { imgText = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = { Text("补充说明（可选）", fontSize = 12.sp) },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    Spacer(Modifier.height(8.dp))
                         Button(
                             onClick = {
                                 if (imgDataUrl == null) {
@@ -554,11 +610,10 @@ fun AiScreen() {
                             )
                         ) {
                             Text(if (imgParsing) "识别中…" else "识别并记账",
-                                color = TextMain, fontSize = 13.sp)
+                            color = TextMain, fontSize = 13.sp)
                         }
                     }
                 }
-            }
             Spacer(Modifier.height(20.dp))
         }
     }

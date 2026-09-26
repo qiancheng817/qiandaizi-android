@@ -265,6 +265,12 @@ interface Api {
     @PUT("settings/ai")
     suspend fun saveAiModels(@Body body: AiModelsPutReq): OkDto
 
+    @GET("settings/baidu-ocr")
+    suspend fun baiduOcrConfig(): BaiduOcrDto
+
+    @PUT("settings/baidu-ocr")
+    suspend fun saveBaiduOcr(@Body body: BaiduOcrPutReq): OkDto
+
     @GET("ai/status")
     suspend fun aiStatus(): AiStatusDto
 

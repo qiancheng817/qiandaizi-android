@@ -316,7 +316,8 @@ data class AiStatusDto(
     val enabled: Boolean = false,
     val provider: String? = null,
     val model: String? = null,
-    @SerialName("imageModel") val imageModel: String? = null
+    @SerialName("imageModel") val imageModel: String? = null,
+    @SerialName("baiduOcr") val baiduOcr: Boolean? = null
 )
 
 @Serializable
@@ -531,6 +532,17 @@ data class AiParseImageReq(
 
 @Serializable
 data class AiModelsPutReq(val models: List<AiModelDto> = emptyList())
+
+// 百度 OCR（图片识别，无需大模型）
+@Serializable
+data class BaiduOcrDto(
+    val enabled: Boolean = false,
+    val apiKey: String = "",
+    val hasSecret: Boolean = false
+)
+
+@Serializable
+data class BaiduOcrPutReq(val apiKey: String, val secretKey: String)
 
 // 水电气规则（透传 JSON）
 typealias UtilityRulesResp = Map<String, JsonElement>
